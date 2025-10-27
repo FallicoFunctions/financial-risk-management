@@ -20,20 +20,25 @@ public class TransactionRiskWorkflow {
     private final UserRiskProfileService userRiskProfileService;
 
     public Mono<Transaction> processTransaction(Transaction transaction) {
+        log.info("Processing transaction: {}", transaction.getId());
+        
         if (transaction.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            log.warn("Invalid transaction amount for transaction: {}", transaction.getId());
             return Mono.error(new TransactionValidationException("Transaction amount must be positive"));
         }
-    
+
         return userRiskProfileService.getUserProfile(transaction.getUserId())
             .flatMap(userProfile -> {
+                log.debug("Retrieved user profile for transaction: {}", transaction.getId());
+                
                 boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(transaction, userProfile);
                 if (isPotentialFraud) {
                     log.warn("Potential fraud detected for transaction: {}", transaction.getId());
                     return Mono.error(new FraudDetectionException("Potential fraud detected"));
                 }
                 
-                // Update user risk profile
                 return userRiskProfileService.updateUserRiskProfile(transaction)
+                    .doOnSuccess(v -> log.info("Transaction processed successfully: {}", transaction.getId()))
                     .thenReturn(transaction);
             });
     }
