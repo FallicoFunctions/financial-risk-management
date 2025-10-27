@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 import com.nickfallico.financialriskmanagement.model.Transaction.TransactionType;
+import com.nickfallico.financialriskmanagement.validation.ValidMerchantCategory;
 
 @Data
 @Builder
@@ -31,6 +32,7 @@ public class TransactionDTO {
     private TransactionType transactionType;
 
     @Size(max = 100, message = "Merchant category must be less than 100 characters")
+    @ValidMerchantCategory(message = "Merchant category is not supported")
     private String merchantCategory;
 
     @Size(max = 200, message = "Merchant name must be less than 200 characters")
