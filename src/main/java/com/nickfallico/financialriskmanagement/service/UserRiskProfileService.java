@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.Arrays;
 
 @Service
 @RequiredArgsConstructor
@@ -49,6 +50,11 @@ public class UserRiskProfileService {
         // Save updated profile
         userRiskProfileRepository.save(profile);
     }
+
+    public UserRiskProfile getUserProfile(String userId) {
+        return userRiskProfileRepository.findById(userId)
+            .orElse(createNewUserProfile(userId));
+    }
     
     private UserRiskProfile createNewUserProfile(String userId) {
         UserRiskProfile profile = new UserRiskProfile();
@@ -67,14 +73,50 @@ public class UserRiskProfileService {
     }
     
     private double calculateBehavioralRisk(UserRiskProfile profile, Transaction transaction) {
-        // Placeholder implementation
-        // TODO: Implement more sophisticated risk calculation
-        return 0.5; // Neutral risk
+        double riskScore = 0.5; // Base neutral risk
+    
+        // Transaction frequency analysis
+        int totalTransactions = profile.getTotalTransactions();
+        if (totalTransactions < 10) {
+            riskScore += 0.2; // New users have higher inherent risk
+        }
+    
+        // Merchant category diversity
+        int merchantCategoryCount = profile.getMerchantCategoryFrequency().size();
+        if (merchantCategoryCount < 3) {
+            riskScore += 0.1; // Limited merchant diversity increases risk
+        }
+    
+        // Sudden change in transaction patterns
+        double averageTransactionAmount = profile.getAverageTransactionAmount();
+        double currentTransactionAmount = transaction.getAmount().doubleValue();
+        if (Math.abs(currentTransactionAmount - averageTransactionAmount) > averageTransactionAmount * 0.5) {
+            riskScore += 0.3; // Significant deviation from average
+        }
+    
+        return Math.min(riskScore, 1.0);
     }
     
     private double calculateTransactionRisk(Transaction transaction) {
-        // Placeholder implementation
-        // TODO: Implement more sophisticated risk calculation
-        return 0.5; // Neutral risk
+        double riskScore = 0.5;
+    
+        // High amount risk
+        if (transaction.getAmount().doubleValue() > 10000) {
+            riskScore += 0.3;
+        }
+    
+        // International transaction risk
+        if (Boolean.TRUE.equals(transaction.getIsInternational())) {
+            riskScore += 0.2;
+        }
+    
+        // Risky merchant categories
+        String[] highRiskCategories = {"GAMBLING", "CRYPTO", "ADULT_ENTERTAINMENT"};
+        if (Arrays.stream(highRiskCategories).anyMatch(category -> 
+            category.equals(transaction.getMerchantCategory()))) {
+            riskScore += 0.4;
+        }
+    
+        return Math.min(riskScore, 1.0);
     }
 }
