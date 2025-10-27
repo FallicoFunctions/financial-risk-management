@@ -1,23 +1,32 @@
 package com.nickfallico.financialriskmanagement;
 
+import com.nickfallico.financialriskmanagement.ml.FraudFeatureExtractor;
 import com.nickfallico.financialriskmanagement.model.Transaction;
 import com.nickfallico.financialriskmanagement.model.UserRiskProfile;
 import com.nickfallico.financialriskmanagement.service.FraudDetectionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.when;
 
 class FraudDetectionServiceTest {
 
     private FraudDetectionService fraudDetectionService;
 
+    @Mock
+    private FraudFeatureExtractor fraudFeatureExtractor;
+
     @BeforeEach
     void setUp() {
-        fraudDetectionService = new FraudDetectionService();
+        MockitoAnnotations.openMocks(this);
+        fraudDetectionService = new FraudDetectionService(fraudFeatureExtractor);
     }
 
     @Test
@@ -32,6 +41,10 @@ class FraudDetectionServiceTest {
         UserRiskProfile profile = new UserRiskProfile();
         profile.setTotalTransactions(20);
         profile.getMerchantCategoryFrequency().put("ELECTRONICS", 5);
+
+        // Mock feature extraction
+        when(fraudFeatureExtractor.extractFeatures(highAmountTransaction, profile))
+            .thenReturn(Arrays.asList(1.0, 0.5, 0.2, 0.3, 0.2));
 
         boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(highAmountTransaction, profile);
 
