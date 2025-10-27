@@ -23,6 +23,7 @@ public interface TransactionRepository extends R2dbcRepository<Transaction, UUID
         Instant end
     );
     
+    @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE user_id = :userId AND created_at >= :start AND created_at < :end")
     Mono<BigDecimal> sumAmountByUserIdAndCreatedAtBetween(
         String userId, 
         Instant start, 
