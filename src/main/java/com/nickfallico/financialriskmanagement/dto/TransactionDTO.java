@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.util.UUID;
 import com.nickfallico.financialriskmanagement.model.Transaction.TransactionType;
 import com.nickfallico.financialriskmanagement.validation.ValidMerchantCategory;
+import com.nickfallico.financialriskmanagement.validation.ValidTransactionAmount;
 
 @Data
 @Builder
@@ -20,6 +21,11 @@ public class TransactionDTO {
     @NotNull(message = "Amount must not be null")
     @DecimalMin(value = "0.01", message = "Amount must be at least 0.01")
     @DecimalMax(value = "1000000", message = "Amount exceeds maximum limit")
+    @ValidTransactionAmount(
+        message = "Transaction amount must be between $0.01 and $1,000,000",
+        min = 0.01, 
+        max = 1000000.0
+    )
     private BigDecimal amount;
 
     @NotBlank(message = "Currency must not be blank")
