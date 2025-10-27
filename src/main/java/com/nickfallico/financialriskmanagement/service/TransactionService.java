@@ -55,4 +55,29 @@ public class TransactionService {
     public Flux<Transaction> getTransactionsBetween(String userId, Instant start, Instant end) {
         return transactionRepository.findByUserIdAndCreatedAtBetween(userId, start, end);
     }
+
+    // Retrieve transactions by merchant category
+    public Flux<Transaction> getTransactionsByMerchantCategory(String merchantCategory) {
+        return transactionRepository.findByMerchantCategory(merchantCategory);
+    }
+
+    // Count international transactions for a user
+    public Mono<Long> countInternationalTransactions(String userId) {
+        return transactionRepository.countByUserIdAndIsInternational(userId, true);
+    }
+
+    // Find a user's top 5 highest value transactions
+    public Flux<Transaction> getTop5HighestTransactions(String userId) {
+        return transactionRepository.findTop5HighestTransactionsByUserId(userId);
+    }
+
+    // Get transactions above a certain amount
+    public Flux<Transaction> getTransactionsAboveThreshold(BigDecimal threshold) {
+        return transactionRepository.findByAmountGreaterThan(threshold);
+    }
+
+    // Calculate average transaction amount by merchant category
+    public Mono<Double> getAverageTransactionAmountByMerchantCategory(String merchantCategory) {
+        return transactionRepository.calculateAverageAmountByMerchantCategory(merchantCategory);
+    }
 }
