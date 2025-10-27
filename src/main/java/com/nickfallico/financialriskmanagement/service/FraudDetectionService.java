@@ -22,17 +22,25 @@ public class FraudDetectionService {
     public boolean isPotentialFraud(Transaction transaction, UserRiskProfile profile) {
         List<Double> features = extractFeatures(transaction, profile);
         double fraudProbability = calculateFraudProbability(features);
-
+        
         boolean isFraudulent = fraudProbability > FRAUD_THRESHOLD;
-
+        
         if (isFraudulent) {
-            log.warn("Potential fraud detected - Transaction: {}, Fraud Probability: {}", 
+            log.warn("Potential Fraud Detected - Transaction Details: [ID: {}, Amount: {}, Merchant: {}, Fraud Probability: {}]", 
                 transaction.getId(), 
+                transaction.getAmount(),
+                transaction.getMerchantCategory(),
                 fraudProbability
+            );
+        } else {
+            log.info("Transaction Approved - Transaction Details: [ID: {}, Amount: {}, Merchant: {}]", 
+                transaction.getId(), 
+                transaction.getAmount(),
+                transaction.getMerchantCategory()
             );
         }
         
-        return fraudProbability > FRAUD_THRESHOLD;
+        return isFraudulent;
     }
 
     private List<Double> extractFeatures(Transaction transaction, UserRiskProfile profile) {
