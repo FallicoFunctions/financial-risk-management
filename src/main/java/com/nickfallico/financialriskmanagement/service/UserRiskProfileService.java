@@ -11,12 +11,20 @@ import java.time.Instant;
 @Service
 @RequiredArgsConstructor
 public class UserRiskProfileService {
+    private final FraudDetectionService fraudDetectionService;
     private final UserRiskProfileRepository userRiskProfileRepository;
 
     public void updateUserRiskProfile(Transaction transaction) {
         // Retrieve or create user profile
         UserRiskProfile profile = userRiskProfileRepository.findById(transaction.getUserId())
             .orElse(createNewUserProfile(transaction.getUserId()));
+        
+        // Check if transaction is potentially fraudulent
+        boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(transaction, profile);
+        
+        if (isPotentialFraud) {
+            profile.setHighRiskTransactions(profile.getHighRiskTransactions() + 1);
+        }
         
         // Update Aggregated Metrics
         profile.setTotalTransactions(profile.getTotalTransactions() + 1);
