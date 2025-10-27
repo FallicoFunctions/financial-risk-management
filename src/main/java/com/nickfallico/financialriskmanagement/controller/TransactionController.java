@@ -4,6 +4,7 @@ import com.nickfallico.financialriskmanagement.dto.TransactionDTO;
 import com.nickfallico.financialriskmanagement.model.Transaction;
 import com.nickfallico.financialriskmanagement.service.TransactionService;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -23,7 +24,9 @@ public class TransactionController {
     private final TransactionService transactionService;
 
     @PostMapping
-    public Mono<ResponseEntity<Transaction>> createTransaction(@RequestBody TransactionDTO transactionDTO) {
+    public Mono<ResponseEntity<Transaction>> createTransaction(
+        @Valid @RequestBody TransactionDTO transactionDTO
+    ) {
         return transactionService.createTransaction(transactionDTO)
             .map(ResponseEntity::ok)
             .defaultIfEmpty(ResponseEntity.badRequest().build());
