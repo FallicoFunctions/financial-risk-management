@@ -9,7 +9,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
@@ -51,5 +53,24 @@ class FraudDetectionServiceTest {
         boolean isPotentialFraud = service.isPotentialFraud(internationalTransaction, profile);
 
         assertTrue(isPotentialFraud, "International transaction with low transaction history should be flagged");
+    }
+
+    @Test
+    void testLowRiskTransaction() {
+        Transaction normalTransaction = Transaction.builder()
+            .amount(BigDecimal.valueOf(100))
+            .isInternational(false)
+            .merchantCategory("GROCERIES")
+            .createdAt(Instant.now())
+            .build();
+
+        UserRiskProfile profile = new UserRiskProfile();
+        profile.setTotalTransactions(50);
+        profile.getMerchantCategoryFrequency().put("GROCERIES", 20);
+
+        FraudDetectionService service = new FraudDetectionService();
+        boolean isPotentialFraud = service.isPotentialFraud(normalTransaction, profile);
+
+        assertFalse(isPotentialFraud, "Normal transaction should not be flagged as fraud");
     }
 }
