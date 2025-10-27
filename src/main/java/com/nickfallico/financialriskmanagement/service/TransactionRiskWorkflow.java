@@ -4,7 +4,6 @@ import org.springframework.stereotype.Service;
 
 import com.nickfallico.financialriskmanagement.exception.FraudDetectionException;
 import com.nickfallico.financialriskmanagement.model.Transaction;
-import com.nickfallico.financialriskmanagement.model.UserRiskProfile;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,20 +17,18 @@ public class TransactionRiskWorkflow {
     private final UserRiskProfileService userRiskProfileService;
 
     public Mono<Transaction> processTransaction(Transaction transaction) {
-        return Mono.fromSupplier(() -> {
-            UserRiskProfile userProfile = userRiskProfileService.getUserProfile(transaction.getUserId());
-            
-            boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(transaction, userProfile);
-            
-            if (isPotentialFraud) {
-                log.warn("Potential fraud detected for transaction: {}", transaction.getId());
-                throw new FraudDetectionException("Potential fraud detected");
-            }
-            
-            // Update user risk profile
-            userRiskProfileService.updateUserRiskProfile(transaction);
-            
-            return transaction;
-        });
+        return userRiskProfileService.getUserProfile(transaction.getUserId())
+            .flatMap(userProfile -> {
+                boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(transaction, userProfile);
+                
+                if (isPotentialFraud) {
+                    log.warn("Potential fraud detected for transaction: {}", transaction.getId());
+                    return Mono.error(new FraudDetectionException("Potential fraud detected"));
+                }
+                
+                // Update user risk profile
+                return userRiskProfileService.updateUserRiskProfile(transaction)
+                    .thenReturn(transaction);
+            });
     }
 }
