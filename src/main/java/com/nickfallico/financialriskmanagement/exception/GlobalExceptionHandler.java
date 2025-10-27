@@ -1,15 +1,21 @@
 package com.nickfallico.financialriskmanagement.exception;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.ControllerAdvice;
-import org.springframework.web.bind.annotation.ExceptionHandler;
+import java.time.Instant;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 
-import java.time.Instant;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -41,11 +47,40 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, ex.getStatus());
     }
 
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        List<String> errors = ex.getBindingResult()
+            .getFieldErrors()
+            .stream()
+            .map(FieldError::getDefaultMessage)
+            .collect(Collectors.toList());
+
+        ErrorResponse errorResponse = new ErrorResponse(
+            "VALIDATION_ERROR",
+            "Validation failed",
+            Instant.now(),
+            errors
+        );
+
+        logger.error("Validation Error: {}", errors);
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
     @Getter
     @AllArgsConstructor
     public static class ErrorResponse {
         private String errorCode;
         private String message;
         private Instant timestamp;
+        private List<String> details;
+
+        // Constructor for errors without detailed list
+        public ErrorResponse(String errorCode, String message, Instant timestamp) {
+            this.errorCode = errorCode;
+            this.message = message;
+            this.timestamp = timestamp;
+            this.details = Collections.emptyList();
+        }
     }
 }
