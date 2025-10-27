@@ -4,6 +4,8 @@ import com.nickfallico.financialriskmanagement.model.Transaction;
 import com.nickfallico.financialriskmanagement.model.UserRiskProfile;
 import com.nickfallico.financialriskmanagement.repository.UserRiskProfileRepository;
 import lombok.RequiredArgsConstructor;
+import reactor.core.publisher.Mono;
+
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -15,45 +17,46 @@ public class UserRiskProfileService {
     private final FraudDetectionService fraudDetectionService;
     private final UserRiskProfileRepository userRiskProfileRepository;
 
-    public void updateUserRiskProfile(Transaction transaction) {
-        // Retrieve or create user profile
-        UserRiskProfile profile = userRiskProfileRepository.findById(transaction.getUserId())
-            .orElse(createNewUserProfile(transaction.getUserId()));
-        
-        // Check if transaction is potentially fraudulent
-        boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(transaction, profile);
-        
-        if (isPotentialFraud) {
-            profile.setHighRiskTransactions(profile.getHighRiskTransactions() + 1);
-        }
-        
-        // Update Aggregated Metrics
-        profile.setTotalTransactions(profile.getTotalTransactions() + 1);
-        profile.setTotalTransactionValue(
-            profile.getTotalTransactionValue() + transaction.getAmount().doubleValue()
-        );
-        
-        // Update merchant category frequency
-        updateMerchantCategoryFrequency(profile, transaction);
-        
-        // Calculate risk scores
-        double behavioralRiskScore = calculateBehavioralRisk(profile, transaction);
-        double transactionRiskScore = calculateTransactionRisk(transaction);
-        
-        // Combine Scores
-        profile.setBehavioralRiskScore(behavioralRiskScore);
-        profile.setTransactionRiskScore(transactionRiskScore);
-        profile.setOverallRiskScore(
-            (behavioralRiskScore + transactionRiskScore) / 2
-        );
-        
-        // Save updated profile
-        userRiskProfileRepository.save(profile);
+    public Mono<Void> updateUserRiskProfile(Transaction transaction) {
+        return userRiskProfileRepository.findById(transaction.getUserId())
+            .switchIfEmpty(Mono.just(createNewUserProfile(transaction.getUserId())))
+            .flatMap(profile -> {
+                // Check if transaction is potentially fraudulent
+                boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(transaction, profile);
+                
+                if (isPotentialFraud) {
+                    profile.setHighRiskTransactions(profile.getHighRiskTransactions() + 1);
+                }
+                
+                // Update Aggregated Metrics
+                profile.setTotalTransactions(profile.getTotalTransactions() + 1);
+                profile.setTotalTransactionValue(
+                    profile.getTotalTransactionValue() + transaction.getAmount().doubleValue()
+                );
+                
+                // Update merchant category frequency
+                updateMerchantCategoryFrequency(profile, transaction);
+                
+                // Calculate risk scores
+                double behavioralRiskScore = calculateBehavioralRisk(profile, transaction);
+                double transactionRiskScore = calculateTransactionRisk(transaction);
+                
+                // Combine Scores
+                profile.setBehavioralRiskScore(behavioralRiskScore);
+                profile.setTransactionRiskScore(transactionRiskScore);
+                profile.setOverallRiskScore(
+                    (behavioralRiskScore + transactionRiskScore) / 2
+                );
+                
+                // Save updated profile
+                return userRiskProfileRepository.save(profile);
+            })
+            .then();
     }
 
-    public UserRiskProfile getUserProfile(String userId) {
+    public Mono<UserRiskProfile> getUserProfile(String userId) {
         return userRiskProfileRepository.findById(userId)
-            .orElse(createNewUserProfile(userId));
+            .switchIfEmpty(Mono.fromSupplier(() -> createNewUserProfile(userId)));
     }
     
     private UserRiskProfile createNewUserProfile(String userId) {
