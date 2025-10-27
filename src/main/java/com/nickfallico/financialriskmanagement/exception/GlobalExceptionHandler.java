@@ -67,6 +67,32 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(TransactionValidationException.class)
+    public ResponseEntity<ErrorResponse> handleTransactionValidationException(TransactionValidationException ex) {
+        logger.error("Transaction Validation Error: {}", ex.getMessage());
+        
+        ErrorResponse error = new ErrorResponse(
+            ex.getErrorCode(),
+            ex.getMessage(),
+            Instant.now()
+        );
+        
+        return new ResponseEntity<>(error, ex.getStatus());
+    }
+
+    @ExceptionHandler(RiskAssessmentException.class)
+    public ResponseEntity<ErrorResponse> handleRiskAssessmentException(RiskAssessmentException ex) {
+        logger.error("Risk Assessment Error: {}", ex.getMessage());
+        
+        ErrorResponse error = new ErrorResponse(
+            ex.getErrorCode(),
+            ex.getMessage(),
+            Instant.now()
+        );
+        
+        return new ResponseEntity<>(error, ex.getStatus());
+    }
+
     @Getter
     @AllArgsConstructor
     public static class ErrorResponse {

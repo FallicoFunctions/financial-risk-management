@@ -1,8 +1,11 @@
 package com.nickfallico.financialriskmanagement.service;
 
+import java.math.BigDecimal;
+
 import org.springframework.stereotype.Service;
 
 import com.nickfallico.financialriskmanagement.exception.FraudDetectionException;
+import com.nickfallico.financialriskmanagement.exception.TransactionValidationException;
 import com.nickfallico.financialriskmanagement.model.Transaction;
 
 import lombok.RequiredArgsConstructor;
@@ -17,10 +20,13 @@ public class TransactionRiskWorkflow {
     private final UserRiskProfileService userRiskProfileService;
 
     public Mono<Transaction> processTransaction(Transaction transaction) {
+        if (transaction.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            return Mono.error(new TransactionValidationException("Transaction amount must be positive"));
+        }
+    
         return userRiskProfileService.getUserProfile(transaction.getUserId())
             .flatMap(userProfile -> {
                 boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(transaction, userProfile);
-                
                 if (isPotentialFraud) {
                     log.warn("Potential fraud detected for transaction: {}", transaction.getId());
                     return Mono.error(new FraudDetectionException("Potential fraud detected"));
