@@ -1,6 +1,8 @@
 package com.nickfallico.financialriskmanagement.repository;
 
 import com.nickfallico.financialriskmanagement.model.Transaction;
+
+import org.springframework.data.r2dbc.repository.Query;
 import org.springframework.data.r2dbc.repository.R2dbcRepository;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
@@ -33,12 +35,14 @@ public interface TransactionRepository extends R2dbcRepository<Transaction, UUID
     // Count transactions by user and international status
     Mono<Long> countByUserIdAndIsInternational(String userId, Boolean isInternational);
 
-    // Find highest value transactions for a user
-    Flux<Transaction> findTop5ByUserIdOrderByAmountDesc(String userId);
+    // Find top 5 highest value transactions for a user
+    @Query("SELECT * FROM transactions WHERE user_id = :userId ORDER BY amount DESC LIMIT 5")
+    Flux<Transaction> findTop5HighestTransactionsByUserId(String userId);
 
-    // Complex query: Find transactions exceeding a specific amount threshold
+    // Find transactions exceeding a specific amount threshold
     Flux<Transaction> findByAmountGreaterThan(BigDecimal threshold);
 
-    // Aggregate method: Calculate average transaction amount by merchant category
+    // Calculate average transaction amount by merchant category
+    @Query("SELECT AVG(amount) FROM transactions WHERE merchant_category = :merchantCategory")
     Mono<Double> calculateAverageAmountByMerchantCategory(String merchantCategory);
 }
