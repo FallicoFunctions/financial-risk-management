@@ -1,42 +1,36 @@
 package com.nickfallico.financialriskmanagement.service;
 
-import com.nickfallico.financialriskmanagement.ml.FraudFeatureExtractor;
-import com.nickfallico.financialriskmanagement.model.Transaction;
-import com.nickfallico.financialriskmanagement.model.UserRiskProfile;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.util.List;
 
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import com.nickfallico.financialriskmanagement.ml.FraudFeatureExtractor;
+import com.nickfallico.financialriskmanagement.ml.ProbabilisticFraudModel;
+import com.nickfallico.financialriskmanagement.model.Transaction;
+import com.nickfallico.financialriskmanagement.model.UserRiskProfile;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Mono;
 
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class FraudDetectionService {
     private final FraudFeatureExtractor fraudFeatureExtractor;
-    private static final double FRAUD_THRESHOLD = 0.7;
+    private final ProbabilisticFraudModel fraudModel;
 
-    public boolean isPotentialFraud(Transaction transaction, UserRiskProfile profile) {
-        List<Double> features = fraudFeatureExtractor.extractFeatures(transaction, profile);
-        double fraudProbability = calculateFraudProbability(features);
-        
-        boolean isFraudulent = fraudProbability > FRAUD_THRESHOLD;
-        
-        logFraudDetectionResult(transaction, fraudProbability, isFraudulent);
-        
-        return isFraudulent;
-    }
-
-    private double calculateFraudProbability(List<Double> features) {
-        double[] weights = {0.3, 0.2, 0.2, 0.15, 0.15};
-        
-        double weightedRiskScore = 0.0;
-        for (int i = 0; i < features.size(); i++) {
-            weightedRiskScore += features.get(i) * weights[i];
-        }
-        
-        return Math.min(weightedRiskScore, 1.0);
+    public Mono<Boolean> isPotentialFraud(Transaction transaction, UserRiskProfile profile) {
+        return Mono.fromCallable(() -> {
+            List<Double> features = fraudFeatureExtractor.extractFeatures(transaction, profile);
+            double fraudProbability = fraudModel.calculateFraudProbability(features, new double[]{0.3, 0.2, 0.2, 0.15, 0.15});
+            
+            boolean isFraudulent = fraudModel.isFraudulent(fraudProbability);
+            
+            logFraudDetectionResult(transaction, fraudProbability, isFraudulent);
+            
+            return isFraudulent;
+        });
     }
 
     private void logFraudDetectionResult(Transaction transaction, double fraudProbability, boolean isFraudulent) {
