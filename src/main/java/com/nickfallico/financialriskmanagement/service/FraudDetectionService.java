@@ -8,8 +8,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
-import java.util.Arrays;
 import java.util.List;
 
 @Service
@@ -18,8 +16,6 @@ import java.util.List;
 public class FraudDetectionService {
     private final FraudFeatureExtractor fraudFeatureExtractor;
     private static final double FRAUD_THRESHOLD = 0.7;
-    private static final double HIGH_AMOUNT_THRESHOLD = 10000.0;
-    private static final int INTERNATIONAL_RISK_MULTIPLIER = 2;
 
     public boolean isPotentialFraud(Transaction transaction, UserRiskProfile profile) {
         List<Double> features = fraudFeatureExtractor.extractFeatures(transaction, profile);
@@ -30,48 +26,6 @@ public class FraudDetectionService {
         logFraudDetectionResult(transaction, fraudProbability, isFraudulent);
         
         return isFraudulent;
-    }
-
-    private double calculateAmountRisk(BigDecimal amount) {
-        double amountValue = amount.doubleValue();
-        if (amountValue > HIGH_AMOUNT_THRESHOLD) {
-            return 1.0; // High risk for large transactions
-        }
-        return amountValue / HIGH_AMOUNT_THRESHOLD;
-    }
-
-    private double calculateInternationalRisk(Transaction transaction) {
-        return Boolean.TRUE.equals(transaction.getIsInternational()) 
-            ? INTERNATIONAL_RISK_MULTIPLIER 
-            : 1.0;
-    }
-
-    private double calculateMerchantCategoryRisk(Transaction transaction, UserRiskProfile profile) {
-        String merchantCategory = transaction.getMerchantCategory();
-        // If the profile doesn't have this merchant category, it's riskier
-        if (!profile.getMerchantCategoryFrequency().containsKey(merchantCategory)) {
-            return 1.5;
-        }
-        
-        // Lower risk for frequently used merchant categories
-        int frequency = profile.getMerchantCategoryFrequency().get(merchantCategory);
-        return frequency > 5 ? 0.5 : 1.0;
-    }
-
-    private double calculateTransactionFrequencyRisk(Transaction transaction, UserRiskProfile profile) {
-        // Check how frequently similar transactions occur
-        int totalTransactions = profile.getTotalTransactions();
-        return totalTransactions < 10 ? 1.5 : 1.0;
-    }
-
-    private double calculateTimeOfDayRisk(Transaction transaction) {
-        int hour = transaction.getCreatedAt().atZone(java.time.ZoneId.systemDefault()).getHour();
-        
-        // Higher risk for transactions during unusual hours
-        if (hour < 6 || hour > 22) {
-            return 1.5;
-        }
-        return 1.0;
     }
 
     private double calculateFraudProbability(List<Double> features) {
