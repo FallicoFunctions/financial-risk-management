@@ -19,8 +19,6 @@ public class TransactionDTO {
     private String userId;
 
     @NotNull(message = "Amount must not be null")
-    @DecimalMin(value = "0.01", message = "Amount must be at least 0.01")
-    @DecimalMax(value = "1000000", message = "Amount exceeds maximum limit")
     @ValidTransactionAmount(
         message = "Transaction amount must be between $0.01 and $1,000,000",
         min = 0.01, 
