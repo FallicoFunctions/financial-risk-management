@@ -3,6 +3,8 @@ package com.nickfallico.financialriskmanagement.service;
 import com.nickfallico.financialriskmanagement.model.Transaction;
 import com.nickfallico.financialriskmanagement.model.UserRiskProfile;
 import com.nickfallico.financialriskmanagement.repository.UserRiskProfileRepository;
+
+import io.micrometer.core.instrument.*;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
 
@@ -18,39 +20,45 @@ import java.util.Arrays;
 public class UserRiskProfileService {
     private final FraudDetectionService fraudDetectionService;
     private final UserRiskProfileRepository userRiskProfileRepository;
+    private final MeterRegistry meterRegistry;
 
     @CacheEvict(value = "userProfiles", key = "#transaction.userId")
     public Mono<Void> updateUserRiskProfile(Transaction transaction) {
+        Timer.Sample sample = Timer.start(meterRegistry);
+        
         return userRiskProfileRepository.findById(transaction.getUserId())
             .switchIfEmpty(Mono.just(createNewUserProfile(transaction.getUserId())))
             .flatMap(profile -> fraudDetectionService.isPotentialFraud(transaction, profile)
                 .flatMap(isPotentialFraud -> {
+                    meterRegistry.counter("user_risk_profile_updates", 
+                        "is_high_risk", String.valueOf(isPotentialFraud)).increment();
+                    
                     if (isPotentialFraud) {
                         profile.setHighRiskTransactions(profile.getHighRiskTransactions() + 1);
                     }
                     
-                    // Update Aggregated Metrics
+                    // Rest of the existing logic
                     profile.setTotalTransactions(profile.getTotalTransactions() + 1);
                     profile.setTotalTransactionValue(
                         profile.getTotalTransactionValue() + transaction.getAmount().doubleValue()
                     );
                     
-                    // Update merchant category frequency
                     updateMerchantCategoryFrequency(profile, transaction);
                     
-                    // Calculate risk scores
                     double behavioralRiskScore = calculateBehavioralRisk(profile, transaction);
                     double transactionRiskScore = calculateTransactionRisk(transaction);
                     
-                    // Combine Scores
                     profile.setBehavioralRiskScore(behavioralRiskScore);
                     profile.setTransactionRiskScore(transactionRiskScore);
                     profile.setOverallRiskScore(
                         (behavioralRiskScore + transactionRiskScore) / 2
                     );
                     
-                    // Save updated profile
-                    return userRiskProfileRepository.save(profile);
+                    return userRiskProfileRepository.save(profile)
+                        .doOnSuccess(savedProfile -> {
+                            sample.stop(meterRegistry.timer("user_risk_profile_update_time", 
+                                "is_high_risk", String.valueOf(isPotentialFraud)));
+                        });
                 })
             )
             .then();
@@ -58,8 +66,14 @@ public class UserRiskProfileService {
 
     @Cacheable(value = "userProfiles", key = "#userId")
     public Mono<UserRiskProfile> getUserProfile(String userId) {
+        Timer.Sample sample = Timer.start(meterRegistry);
+        
         return userRiskProfileRepository.findById(userId)
-            .switchIfEmpty(Mono.fromSupplier(() -> createNewUserProfile(userId)));
+            .switchIfEmpty(Mono.fromSupplier(() -> createNewUserProfile(userId)))
+            .doOnSuccess(profile -> {
+                sample.stop(meterRegistry.timer("get_user_profile_time"));
+                meterRegistry.counter("get_user_profile_attempts").increment();
+            });
     }
     
     private UserRiskProfile createNewUserProfile(String userId) {
