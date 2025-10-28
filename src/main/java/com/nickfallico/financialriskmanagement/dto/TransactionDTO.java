@@ -11,7 +11,6 @@ import com.nickfallico.financialriskmanagement.validation.*;
 
 @Data
 @Builder
-@ValidTransaction
 public class TransactionDTO {
     private UUID id;
 
