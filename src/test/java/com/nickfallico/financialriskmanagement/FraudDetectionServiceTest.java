@@ -1,21 +1,26 @@
 package com.nickfallico.financialriskmanagement;
 
-import com.nickfallico.financialriskmanagement.ml.FraudFeatureExtractor;
-import com.nickfallico.financialriskmanagement.ml.ProbabilisticFraudModel;
-import com.nickfallico.financialriskmanagement.model.Transaction;
-import com.nickfallico.financialriskmanagement.model.UserRiskProfile;
-import com.nickfallico.financialriskmanagement.service.FraudDetectionService;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Arrays;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.when;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
+
+import com.nickfallico.financialriskmanagement.ml.FraudFeatureExtractor;
+import com.nickfallico.financialriskmanagement.ml.ProbabilisticFraudModel;
+import com.nickfallico.financialriskmanagement.model.Transaction;
+import com.nickfallico.financialriskmanagement.model.UserRiskProfile;
+import com.nickfallico.financialriskmanagement.service.FraudDetectionService;
+
+import io.micrometer.core.instrument.MeterRegistry;
 
 class FraudDetectionServiceTest {
 
@@ -27,7 +32,13 @@ class FraudDetectionServiceTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        fraudDetectionService = new FraudDetectionService(fraudFeatureExtractor, new ProbabilisticFraudModel());
+        // Create a mock MeterRegistry for testing
+        MeterRegistry mockMeterRegistry = Mockito.mock(MeterRegistry.class);
+        fraudDetectionService = new FraudDetectionService(
+            fraudFeatureExtractor, 
+            new ProbabilisticFraudModel(), 
+            mockMeterRegistry
+        );
     }
 
     @Test
