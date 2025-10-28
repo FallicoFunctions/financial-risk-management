@@ -1,6 +1,7 @@
 package com.nickfallico.financialriskmanagement;
 
 import com.nickfallico.financialriskmanagement.ml.FraudFeatureExtractor;
+import com.nickfallico.financialriskmanagement.ml.ProbabilisticFraudModel;
 import com.nickfallico.financialriskmanagement.model.Transaction;
 import com.nickfallico.financialriskmanagement.model.UserRiskProfile;
 import com.nickfallico.financialriskmanagement.service.FraudDetectionService;
@@ -26,7 +27,7 @@ class FraudDetectionServiceTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        fraudDetectionService = new FraudDetectionService(fraudFeatureExtractor);
+        fraudDetectionService = new FraudDetectionService(fraudFeatureExtractor, new ProbabilisticFraudModel());
     }
 
     @Test
@@ -45,7 +46,8 @@ class FraudDetectionServiceTest {
         when(fraudFeatureExtractor.extractFeatures(highAmountTransaction, profile))
             .thenReturn(Arrays.asList(1.0, 0.5, 0.2, 0.3, 0.2));
 
-        boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(highAmountTransaction, profile);
+        boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(highAmountTransaction, profile)
+            .block(); // Use block() to get the result
 
         assertTrue(isPotentialFraud, "High amount transaction should be flagged as potential fraud");
     }
@@ -63,7 +65,8 @@ class FraudDetectionServiceTest {
         profile.setTotalTransactions(5);
         profile.getMerchantCategoryFrequency().put("TRAVEL", 1);
 
-        boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(internationalTransaction, profile);
+        boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(internationalTransaction, profile)
+            .block(); // Use block() to get the result
 
         assertTrue(isPotentialFraud, "International transaction with low transaction history should be flagged");
     }
@@ -81,7 +84,8 @@ class FraudDetectionServiceTest {
         profile.setTotalTransactions(50);
         profile.getMerchantCategoryFrequency().put("GROCERIES", 20);
 
-        boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(normalTransaction, profile);
+        boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(normalTransaction, profile)
+            .block(); // Use block() to get the result
 
         assertFalse(isPotentialFraud, "Normal transaction should not be flagged as fraud");
     }
@@ -99,7 +103,8 @@ class FraudDetectionServiceTest {
         profile.setTotalTransactions(10);
         profile.getMerchantCategoryFrequency().put("GAMBLING", 1);
 
-        boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(riskyCategoryTransaction, profile);
+        boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(riskyCategoryTransaction, profile)
+            .block(); // Use block() to get the result
 
         assertTrue(isPotentialFraud, "Gambling transaction should be flagged as potential fraud");
     }
@@ -117,7 +122,8 @@ class FraudDetectionServiceTest {
         profile.setTotalTransactions(30);
         profile.getMerchantCategoryFrequency().put("ONLINE_SHOPPING", 5);
 
-        boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(lateNightTransaction, profile);
+        boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(lateNightTransaction, profile)
+            .block(); // Use block() to get the result
 
         assertTrue(isPotentialFraud, "Late-night transaction should be flagged as potential fraud");
     }
@@ -138,7 +144,8 @@ class FraudDetectionServiceTest {
         when(fraudFeatureExtractor.extractFeatures(transaction, profile))
             .thenReturn(Arrays.asList(0.6, 0.7, 0.5, 0.9, 0.2));
 
-        boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(transaction, profile);
+        boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(transaction, profile)
+            .block(); // Use block() to get the result
 
         assertTrue(isPotentialFraud, "Very low transaction frequency should increase fraud risk");
     }
@@ -159,7 +166,8 @@ class FraudDetectionServiceTest {
         when(fraudFeatureExtractor.extractFeatures(multiRiskTransaction, profile))
             .thenReturn(Arrays.asList(0.8, 1.0, 1.0, 0.8, 0.7));
 
-        boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(multiRiskTransaction, profile);
+        boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(multiRiskTransaction, profile)
+            .block(); // Use block() to get the result
 
         assertTrue(isPotentialFraud, "Multiple high-risk factors should flag transaction as potential fraud");
     }
@@ -177,7 +185,8 @@ class FraudDetectionServiceTest {
         profile.setTotalTransactions(40);
         profile.getMerchantCategoryFrequency().put("ELECTRONICS", 10);
 
-        boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(boundaryTransaction, profile);
+        boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(boundaryTransaction, profile)
+            .block(); // Use block() to get the result
 
         assertFalse(isPotentialFraud, "Transaction just below high-risk threshold should not be flagged");
     }
@@ -199,7 +208,8 @@ class FraudDetectionServiceTest {
         when(fraudFeatureExtractor.extractFeatures(complexTransaction, profile))
             .thenReturn(Arrays.asList(0.7, 0.9, 0.3, 0.5, 0.2));
 
-        boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(complexTransaction, profile);
+        boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(complexTransaction, profile)
+            .block(); // Use block() to get the result
 
         assertTrue(isPotentialFraud, "Complex risk profile with high-risk merchant category should flag transaction");
     }
