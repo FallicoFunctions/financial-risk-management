@@ -42,7 +42,6 @@ class FraudDetectionServiceTest {
         profile.setTotalTransactions(20);
         profile.getMerchantCategoryFrequency().put("ELECTRONICS", 5);
 
-        // Mock feature extraction
         when(fraudFeatureExtractor.extractFeatures(highAmountTransaction, profile))
             .thenReturn(Arrays.asList(1.0, 0.5, 0.2, 0.3, 0.2));
 
@@ -121,5 +120,87 @@ class FraudDetectionServiceTest {
         boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(lateNightTransaction, profile);
 
         assertTrue(isPotentialFraud, "Late-night transaction should be flagged as potential fraud");
+    }
+
+    @Test
+    void testVeryLowTransactionFrequency() {
+        Transaction transaction = Transaction.builder()
+            .amount(BigDecimal.valueOf(1000))
+            .isInternational(false)
+            .merchantCategory("ELECTRONICS")
+            .createdAt(Instant.now())
+            .build();
+
+        UserRiskProfile profile = new UserRiskProfile();
+        profile.setTotalTransactions(2);
+        profile.getMerchantCategoryFrequency().put("ELECTRONICS", 1);
+
+        when(fraudFeatureExtractor.extractFeatures(transaction, profile))
+            .thenReturn(Arrays.asList(0.6, 0.7, 0.5, 0.9, 0.2));
+
+        boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(transaction, profile);
+
+        assertTrue(isPotentialFraud, "Very low transaction frequency should increase fraud risk");
+    }
+
+    @Test
+    void testMultiRiskFactorTransaction() {
+        Transaction multiRiskTransaction = Transaction.builder()
+            .amount(BigDecimal.valueOf(8000))
+            .isInternational(true)
+            .merchantCategory("CRYPTO")
+            .createdAt(Instant.now().plusSeconds(22 * 60 * 60))  // Late evening
+            .build();
+
+        UserRiskProfile profile = new UserRiskProfile();
+        profile.setTotalTransactions(15);
+        profile.getMerchantCategoryFrequency().put("CRYPTO", 2);
+
+        when(fraudFeatureExtractor.extractFeatures(multiRiskTransaction, profile))
+            .thenReturn(Arrays.asList(0.8, 1.0, 1.0, 0.8, 0.7));
+
+        boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(multiRiskTransaction, profile);
+
+        assertTrue(isPotentialFraud, "Multiple high-risk factors should flag transaction as potential fraud");
+    }
+
+    @Test
+    void testBoundaryAmountTransaction() {
+        Transaction boundaryTransaction = Transaction.builder()
+            .amount(BigDecimal.valueOf(9999.99))  // Just below high-risk threshold
+            .isInternational(false)
+            .merchantCategory("ELECTRONICS")
+            .createdAt(Instant.now())
+            .build();
+
+        UserRiskProfile profile = new UserRiskProfile();
+        profile.setTotalTransactions(40);
+        profile.getMerchantCategoryFrequency().put("ELECTRONICS", 10);
+
+        boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(boundaryTransaction, profile);
+
+        assertFalse(isPotentialFraud, "Transaction just below high-risk threshold should not be flagged");
+    }
+
+    @Test
+    void testComplexRiskProfileTransaction() {
+        Transaction complexTransaction = Transaction.builder()
+            .amount(BigDecimal.valueOf(5000))
+            .isInternational(false)
+            .merchantCategory("CRYPTO")
+            .createdAt(Instant.now())
+            .build();
+
+        UserRiskProfile profile = new UserRiskProfile();
+        profile.setTotalTransactions(100);
+        profile.getMerchantCategoryFrequency().put("CRYPTO", 3);
+        profile.setOverallRiskScore(0.7);
+
+        when(fraudFeatureExtractor.extractFeatures(complexTransaction, profile))
+            .thenReturn(Arrays.asList(0.7, 0.9, 0.3, 0.5, 0.2));
+
+        boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(complexTransaction, profile);
+
+        assertTrue(isPotentialFraud, "Complex risk profile with high-risk merchant category should flag transaction");
     }
 }
