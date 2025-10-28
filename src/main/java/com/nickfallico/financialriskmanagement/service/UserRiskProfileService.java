@@ -20,37 +20,36 @@ public class UserRiskProfileService {
     public Mono<Void> updateUserRiskProfile(Transaction transaction) {
         return userRiskProfileRepository.findById(transaction.getUserId())
             .switchIfEmpty(Mono.just(createNewUserProfile(transaction.getUserId())))
-            .flatMap(profile -> {
-                // Check if transaction is potentially fraudulent
-                boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(transaction, profile);
-                
-                if (isPotentialFraud) {
-                    profile.setHighRiskTransactions(profile.getHighRiskTransactions() + 1);
-                }
-                
-                // Update Aggregated Metrics
-                profile.setTotalTransactions(profile.getTotalTransactions() + 1);
-                profile.setTotalTransactionValue(
-                    profile.getTotalTransactionValue() + transaction.getAmount().doubleValue()
-                );
-                
-                // Update merchant category frequency
-                updateMerchantCategoryFrequency(profile, transaction);
-                
-                // Calculate risk scores
-                double behavioralRiskScore = calculateBehavioralRisk(profile, transaction);
-                double transactionRiskScore = calculateTransactionRisk(transaction);
-                
-                // Combine Scores
-                profile.setBehavioralRiskScore(behavioralRiskScore);
-                profile.setTransactionRiskScore(transactionRiskScore);
-                profile.setOverallRiskScore(
-                    (behavioralRiskScore + transactionRiskScore) / 2
-                );
-                
-                // Save updated profile
-                return userRiskProfileRepository.save(profile);
-            })
+            .flatMap(profile -> fraudDetectionService.isPotentialFraud(transaction, profile)
+                .flatMap(isPotentialFraud -> {
+                    if (isPotentialFraud) {
+                        profile.setHighRiskTransactions(profile.getHighRiskTransactions() + 1);
+                    }
+                    
+                    // Update Aggregated Metrics
+                    profile.setTotalTransactions(profile.getTotalTransactions() + 1);
+                    profile.setTotalTransactionValue(
+                        profile.getTotalTransactionValue() + transaction.getAmount().doubleValue()
+                    );
+                    
+                    // Update merchant category frequency
+                    updateMerchantCategoryFrequency(profile, transaction);
+                    
+                    // Calculate risk scores
+                    double behavioralRiskScore = calculateBehavioralRisk(profile, transaction);
+                    double transactionRiskScore = calculateTransactionRisk(transaction);
+                    
+                    // Combine Scores
+                    profile.setBehavioralRiskScore(behavioralRiskScore);
+                    profile.setTransactionRiskScore(transactionRiskScore);
+                    profile.setOverallRiskScore(
+                        (behavioralRiskScore + transactionRiskScore) / 2
+                    );
+                    
+                    // Save updated profile
+                    return userRiskProfileRepository.save(profile);
+                })
+            )
             .then();
     }
 
