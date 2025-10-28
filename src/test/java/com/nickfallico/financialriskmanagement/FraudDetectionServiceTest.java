@@ -10,7 +10,9 @@ import java.util.Arrays;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.nickfallico.financialriskmanagement.ml.FraudFeatureExtractor;
 import com.nickfallico.financialriskmanagement.ml.ProbabilisticFraudModel;
@@ -21,6 +23,7 @@ import com.nickfallico.financialriskmanagement.service.FraudDetectionService;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 
+@ExtendWith(MockitoExtension.class)
 class FraudDetectionServiceTest {
 
     private FraudDetectionService fraudDetectionService;
