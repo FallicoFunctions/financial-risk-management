@@ -7,15 +7,15 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 import com.nickfallico.financialriskmanagement.model.Transaction.TransactionType;
-import com.nickfallico.financialriskmanagement.validation.ValidMerchantCategory;
-import com.nickfallico.financialriskmanagement.validation.ValidTransactionAmount;
+import com.nickfallico.financialriskmanagement.validation.*;
 
 @Data
 @Builder
+@ValidTransaction
 public class TransactionDTO {
     private UUID id;
 
-    @NotBlank(message = "User ID must not be blank")
+    @ValidUserId
     private String userId;
 
     @NotNull(message = "Amount must not be null")
@@ -41,7 +41,7 @@ public class TransactionDTO {
     @ValidMerchantCategory(message = "Merchant category is not supported")
     private String merchantCategory;
 
-    @Size(max = 200, message = "Merchant name must be less than 200 characters")
+    @ValidMerchantName
     private String merchantName;
 
     private Boolean isInternational;
