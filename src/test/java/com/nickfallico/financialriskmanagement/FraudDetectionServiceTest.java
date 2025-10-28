@@ -11,8 +11,6 @@ import java.util.Arrays;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
 
 import com.nickfallico.financialriskmanagement.ml.FraudFeatureExtractor;
 import com.nickfallico.financialriskmanagement.ml.ProbabilisticFraudModel;
@@ -21,6 +19,7 @@ import com.nickfallico.financialriskmanagement.model.UserRiskProfile;
 import com.nickfallico.financialriskmanagement.service.FraudDetectionService;
 
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 
 class FraudDetectionServiceTest {
 
@@ -29,15 +28,14 @@ class FraudDetectionServiceTest {
     @Mock
     private FraudFeatureExtractor fraudFeatureExtractor;
 
+    private final MeterRegistry meterRegistry = new SimpleMeterRegistry();
+
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
-        // Create a mock MeterRegistry for testing
-        MeterRegistry mockMeterRegistry = Mockito.mock(MeterRegistry.class);
         fraudDetectionService = new FraudDetectionService(
             fraudFeatureExtractor, 
             new ProbabilisticFraudModel(), 
-            mockMeterRegistry
+            meterRegistry
         );
     }
 
