@@ -6,6 +6,8 @@ import com.nickfallico.financialriskmanagement.repository.UserRiskProfileReposit
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -17,6 +19,7 @@ public class UserRiskProfileService {
     private final FraudDetectionService fraudDetectionService;
     private final UserRiskProfileRepository userRiskProfileRepository;
 
+    @CacheEvict(value = "userProfiles", key = "#transaction.userId")
     public Mono<Void> updateUserRiskProfile(Transaction transaction) {
         return userRiskProfileRepository.findById(transaction.getUserId())
             .switchIfEmpty(Mono.just(createNewUserProfile(transaction.getUserId())))
@@ -53,6 +56,7 @@ public class UserRiskProfileService {
             .then();
     }
 
+    @Cacheable(value = "userProfiles", key = "#userId")
     public Mono<UserRiskProfile> getUserProfile(String userId) {
         return userRiskProfileRepository.findById(userId)
             .switchIfEmpty(Mono.fromSupplier(() -> createNewUserProfile(userId)));
