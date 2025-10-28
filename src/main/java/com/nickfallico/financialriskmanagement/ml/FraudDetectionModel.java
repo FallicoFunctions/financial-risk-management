@@ -1,23 +1,98 @@
 package com.nickfallico.financialriskmanagement.ml;
 
 import com.nickfallico.financialriskmanagement.model.Transaction;
+import com.nickfallico.financialriskmanagement.model.UserRiskProfile;
 import org.springframework.stereotype.Component;
+
+import java.math.BigDecimal;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
 
 @Component
 public class FraudDetectionModel {
-    // Placeholder for ML model
-    public double predictFraudProbability(Transaction transaction) {
-        // Simple risk calculation based on transaction attributes
-        double riskScore = 0.0;
-        
-        if (transaction.getAmount().doubleValue() > 10000) {
-            riskScore += 0.5;
+    // Configurable risk thresholds
+    private static final Map<String, Double> MERCHANT_CATEGORY_RISK_MULTIPLIERS = new HashMap<>() {{
+        put("GAMBLING", 1.5);
+        put("CRYPTO", 1.4);
+        put("ADULT_ENTERTAINMENT", 1.3);
+        put("ONLINE_SHOPPING", 1.1);
+    }};
+
+    private static final BigDecimal HIGH_RISK_TRANSACTION_THRESHOLD = BigDecimal.valueOf(10000);
+    private static final int HIGH_FREQUENCY_THRESHOLD = 50;
+    private static final int VERY_HIGH_FREQUENCY_THRESHOLD = 200;
+
+    public double predictFraudProbability(Transaction transaction, UserRiskProfile profile) {
+        double baseRiskScore = calculateBaseRiskScore(transaction, profile);
+        double categoryRiskMultiplier = calculateCategoryRiskMultiplier(transaction);
+        double temporalRiskFactor = calculateTemporalRiskFactor(transaction, profile);
+        double frequencyRiskFactor = calculateFrequencyRiskFactor(profile);
+
+        double finalRiskScore = baseRiskScore 
+            * categoryRiskMultiplier 
+            * temporalRiskFactor 
+            * frequencyRiskFactor;
+
+        return Math.min(Math.max(finalRiskScore, 0.0), 1.0);
+    }
+
+    private double calculateBaseRiskScore(Transaction transaction, UserRiskProfile profile) {
+        double amountRisk = calculateAmountRisk(transaction);
+        double internationalRisk = calculateInternationalRisk(transaction);
+        double averageAmountDeviation = calculateAverageAmountDeviation(transaction, profile);
+
+        return (amountRisk + internationalRisk + averageAmountDeviation) / 3;
+    }
+
+    private double calculateAmountRisk(Transaction transaction) {
+        if (transaction.getAmount().compareTo(HIGH_RISK_TRANSACTION_THRESHOLD) > 0) {
+            return 1.0;
         }
+        return transaction.getAmount().doubleValue() / HIGH_RISK_TRANSACTION_THRESHOLD.doubleValue();
+    }
+
+    private double calculateInternationalRisk(Transaction transaction) {
+        return Boolean.TRUE.equals(transaction.getIsInternational()) ? 0.7 : 0.2;
+    }
+
+    private double calculateAverageAmountDeviation(Transaction transaction, UserRiskProfile profile) {
+        if (profile.getAverageTransactionAmount() == 0) return 0.5;
         
-        if (Boolean.TRUE.equals(transaction.getIsInternational())) {
-            riskScore += 0.3;
-        }
+        double currentAmount = transaction.getAmount().doubleValue();
+        double averageAmount = profile.getAverageTransactionAmount();
         
-        return Math.min(riskScore, 1.0);
+        double deviation = Math.abs(currentAmount - averageAmount) / averageAmount;
+        return Math.min(deviation, 1.0);
+    }
+
+    private double calculateCategoryRiskMultiplier(Transaction transaction) {
+        return MERCHANT_CATEGORY_RISK_MULTIPLIERS.getOrDefault(
+            transaction.getMerchantCategory(), 1.0
+        );
+    }
+
+    private double calculateTemporalRiskFactor(Transaction transaction, UserRiskProfile profile) {
+        Instant lastTransactionTime = profile.getLastTransactionDate();
+        if (lastTransactionTime == null) return 1.0;
+
+        Duration timeSinceLastTransaction = Duration.between(lastTransactionTime, transaction.getCreatedAt());
+        
+        // Shorter time between transactions increases risk
+        if (timeSinceLastTransaction.toHours() < 1) return 1.3;
+        if (timeSinceLastTransaction.toHours() < 6) return 1.1;
+        
+        return 1.0;
+    }
+
+    private double calculateFrequencyRiskFactor(UserRiskProfile profile) {
+        int totalTransactions = profile.getTotalTransactions();
+        
+        if (totalTransactions > VERY_HIGH_FREQUENCY_THRESHOLD) return 0.5;
+        if (totalTransactions > HIGH_FREQUENCY_THRESHOLD) return 0.7;
+        if (totalTransactions < 10) return 1.3;
+        
+        return 1.0;
     }
 }
