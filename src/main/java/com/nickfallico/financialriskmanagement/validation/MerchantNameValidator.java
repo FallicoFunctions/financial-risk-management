@@ -7,7 +7,7 @@ import jakarta.validation.ConstraintValidatorContext;
 
 public class MerchantNameValidator implements ConstraintValidator<ValidMerchantName, String> {
     private static final int MAX_LENGTH = 100;
-    private static final Pattern MERCHANT_NAME_PATTERN = Pattern.compile("^[a-zA-Z0-9 &'-]+$");
+    private static final Pattern MERCHANT_NAME_PATTERN = Pattern.compile("^[\\p{L}\\p{N} .,&'()#\\-+/]+$");
 
     @Override
     public boolean isValid(String merchantName, ConstraintValidatorContext context) {
