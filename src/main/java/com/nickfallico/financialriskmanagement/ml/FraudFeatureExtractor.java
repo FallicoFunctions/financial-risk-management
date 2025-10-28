@@ -1,12 +1,13 @@
 package com.nickfallico.financialriskmanagement.ml;
 
-import com.nickfallico.financialriskmanagement.model.Transaction;
-import com.nickfallico.financialriskmanagement.model.UserRiskProfile;
-import org.springframework.stereotype.Component;
-
 import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.List;
+
+import org.springframework.stereotype.Component;
+
+import com.nickfallico.financialriskmanagement.model.Transaction;
+import com.nickfallico.financialriskmanagement.model.UserRiskProfile;
 
 @Component
 public class FraudFeatureExtractor {
