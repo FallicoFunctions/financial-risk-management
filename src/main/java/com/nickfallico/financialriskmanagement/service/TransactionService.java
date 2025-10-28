@@ -3,6 +3,8 @@ package com.nickfallico.financialriskmanagement.service;
 import com.nickfallico.financialriskmanagement.model.Transaction;
 import com.nickfallico.financialriskmanagement.dto.TransactionDTO;
 import com.nickfallico.financialriskmanagement.repository.TransactionRepository;
+
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -20,7 +22,7 @@ public class TransactionService {
     private final TransactionRepository transactionRepository;
 
     // Create a new transaction
-    public Mono<Transaction> createTransaction(TransactionDTO transactionDTO) {
+    public Mono<Transaction> createTransaction(@Valid TransactionDTO transactionDTO) {
         Transaction transaction = Transaction.builder()
             .id(UUID.randomUUID())
             .userId(transactionDTO.getUserId())
