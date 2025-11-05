@@ -14,50 +14,52 @@ public class ComplexTransactionValidator implements ConstraintValidator<ValidTra
         "GAMBLING", "CRYPTO", "ADULT_ENTERTAINMENT"
     );
 
-    private static final BigDecimal HIGH_RISK_MAX_AMOUNT = BigDecimal.valueOf(5000);
-    private static final BigDecimal STANDARD_MAX_AMOUNT = BigDecimal.valueOf(25000);
-    private static final BigDecimal INTERNATIONAL_MAX_AMOUNT = BigDecimal.valueOf(10000);
+    // mirror the allowed list used by @ValidMerchantCategory (keep in sync)
+    private static final List<String> VALID_CATEGORIES = Arrays.asList(
+        "GROCERIES", "ELECTRONICS", "TRAVEL", "DINING",
+        "ENTERTAINMENT", "UTILITIES", "TRANSPORTATION",
+        "GAMBLING", "CRYPTO", "ONLINE_SHOPPING", "ADULT_ENTERTAINMENT"
+    );
+
+    private static final BigDecimal BASIC_MIN = new BigDecimal("0.01");
+    private static final BigDecimal BASIC_MAX = new BigDecimal("1000000");
+    private static final BigDecimal HIGH_RISK_MAX_AMOUNT = new BigDecimal("5000");
+    private static final BigDecimal STANDARD_MAX_AMOUNT = new BigDecimal("25000");
+    private static final BigDecimal INTERNATIONAL_MAX_AMOUNT = new BigDecimal("10000");
 
     @Override
     public boolean isValid(TransactionDTO dto, ConstraintValidatorContext context) {
-        // If there's no DTO at all, don't complain here.
-        if (dto == null) {
-            return true;
-        }
+        if (dto == null) return true;
 
         BigDecimal amount = dto.getAmount();
-        String category = dto.getMerchantCategory();
-        Boolean isInternational = dto.getIsInternational();
+        if (amount == null) return true;
 
-        // If amount is missing or otherwise already invalid,
-        // let the field-level annotations (@NotNull, @ValidTransactionAmount)
-        // generate the violations. We stay quiet.
-        if (amount == null) {
+        // If amount violates the field-level range, let that annotation report it
+        if (amount.compareTo(BASIC_MIN) < 0 || amount.compareTo(BASIC_MAX) > 0) {
             return true;
         }
 
-        // ----- Rule 1: cap by merchant risk -----
-        // If category is high-risk, amount must be <= 5000.
-        // Otherwise amount must be <= 25000.
-        if (category != null && HIGH_RISK_CATEGORIES.contains(category.toUpperCase())) {
-            if (amount.compareTo(HIGH_RISK_MAX_AMOUNT) > 0) {
-                return false;
-            }
+        String category = dto.getMerchantCategory();
+        String catUpper = category == null ? null : category.toUpperCase();
+
+        // If the category itself is invalid, defer to @ValidMerchantCategory (avoid dup)
+        if (catUpper != null && !VALID_CATEGORIES.contains(catUpper)) {
+            return true;
+        }
+
+        // Business caps by risk category
+        if (catUpper != null && HIGH_RISK_CATEGORIES.contains(catUpper)) {
+            if (amount.compareTo(HIGH_RISK_MAX_AMOUNT) > 0) return false;
         } else {
-            if (amount.compareTo(STANDARD_MAX_AMOUNT) > 0) {
-                return false;
-            }
+            if (amount.compareTo(STANDARD_MAX_AMOUNT) > 0) return false;
         }
 
-        // ----- Rule 2: international cap -----
-        // If it's marked international, cap at 10000.
-        if (Boolean.TRUE.equals(isInternational)) {
-            if (amount.compareTo(INTERNATIONAL_MAX_AMOUNT) > 0) {
-                return false;
-            }
+        // International cap
+        if (Boolean.TRUE.equals(dto.getIsInternational())) {
+            if (amount.compareTo(INTERNATIONAL_MAX_AMOUNT) > 0) return false;
         }
 
-        // If we didn't trip any custom business rule, it's valid.
         return true;
     }
+
 }
