@@ -11,8 +11,8 @@ public class MerchantNameValidator implements ConstraintValidator<ValidMerchantN
 
     @Override
     public boolean isValid(String merchantName, ConstraintValidatorContext context) {
-        if (merchantName == null) return false;
-        return merchantName.length() <= MAX_LENGTH && 
-               MERCHANT_NAME_PATTERN.matcher(merchantName).matches();
+        if (merchantName == null || merchantName.isBlank()) return true; // OPTIONAL
+        return merchantName.length() <= MAX_LENGTH &&
+            MERCHANT_NAME_PATTERN.matcher(merchantName).matches();
     }
 }
