@@ -14,7 +14,7 @@ public class FraudFeatureExtractor {
 
     public List<Double> extractFeatures(Transaction transaction, UserRiskProfile profile) {
         return Arrays.asList(
-            normalizeFeature(calculateTransactionAmountRisk(transaction, profile), 0, 10000),
+            normalizeFeature(calculateTransactionAmountRisk(transaction, profile), 0, 1),
             normalizeFeature(calculateMerchantCategoryRisk(transaction, profile), 0, 1),
             normalizeFeature(calculateTemporalRisk(transaction), 0, 1),
             normalizeFeature(calculateFrequencyRisk(transaction, profile), 0, 1),
