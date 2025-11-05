@@ -46,4 +46,6 @@ public interface TransactionRepository extends R2dbcRepository<Transaction, UUID
     // Calculate average transaction amount by merchant category
     @Query("SELECT AVG(amount) FROM transactions WHERE merchant_category = :merchantCategory")
     Mono<Double> calculateAverageAmountByMerchantCategory(String merchantCategory);
+
+    Mono<Long> countByUserIdAndCreatedAtBetween(String userId, Instant start, Instant end);
 }
