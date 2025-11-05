@@ -6,12 +6,14 @@ import com.nickfallico.financialriskmanagement.model.UserRiskProfile;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@ActiveProfiles("test")
 @SpringBootTest(
     properties = {
         // 1. Don't try to spin up Redis-backed cache

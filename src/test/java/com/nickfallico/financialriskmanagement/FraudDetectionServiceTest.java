@@ -48,15 +48,15 @@ class FraudDetectionServiceTest {
             .amount(BigDecimal.valueOf(15000))
             .isInternational(false)
             .merchantCategory("ELECTRONICS")
-            .createdAt(Instant.now())
+            .createdAt(Instant.parse("2025-01-01T12:00:00Z"))
             .build();
 
         UserRiskProfile profile = new UserRiskProfile();
         profile.setTotalTransactions(20);
         profile.getMerchantCategoryFrequency().put("ELECTRONICS", 5);
 
-        when(fraudFeatureExtractor.extractFeatures(highAmountTransaction, profile))
-            .thenReturn(Arrays.asList(1.0, 0.5, 0.2, 0.3, 0.2));
+        // when(fraudFeatureExtractor.extractFeatures(highAmountTransaction, profile))
+            // .thenReturn(Arrays.asList(1.0, 0.5, 0.2, 0.3, 0.2));
 
         boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(highAmountTransaction, profile)
             .block(); // Use block() to get the result
@@ -70,7 +70,7 @@ class FraudDetectionServiceTest {
             .amount(BigDecimal.valueOf(5000))
             .isInternational(true)
             .merchantCategory("TRAVEL")
-            .createdAt(Instant.now())
+            .createdAt(Instant.parse("2025-01-01T12:00:00Z"))
             .build();
 
         UserRiskProfile profile = new UserRiskProfile();
@@ -89,7 +89,7 @@ class FraudDetectionServiceTest {
             .amount(BigDecimal.valueOf(100))
             .isInternational(false)
             .merchantCategory("GROCERIES")
-            .createdAt(Instant.now())
+            .createdAt(Instant.parse("2025-01-01T12:00:00Z"))
             .build();
 
         UserRiskProfile profile = new UserRiskProfile();
@@ -108,7 +108,7 @@ class FraudDetectionServiceTest {
             .amount(BigDecimal.valueOf(500))
             .isInternational(false)
             .merchantCategory("GAMBLING")
-            .createdAt(Instant.now())
+            .createdAt(Instant.parse("2025-01-01T12:00:00Z"))
             .build();
 
         UserRiskProfile profile = new UserRiskProfile();
@@ -122,16 +122,16 @@ class FraudDetectionServiceTest {
     }
 
     @Test
-    void testUnusualTransactionTime() {
+    void testUnusualTransactionTimeWithLowTransactions() {
         Transaction lateNightTransaction = Transaction.builder()
             .amount(BigDecimal.valueOf(300))
             .isInternational(false)
             .merchantCategory("ONLINE_SHOPPING")
-            .createdAt(Instant.now().plusSeconds(3 * 60 * 60))  // 3 hours ahead to simulate late night
+            .createdAt(Instant.parse("2025-01-01T02:30:00Z"))
             .build();
 
         UserRiskProfile profile = new UserRiskProfile();
-        profile.setTotalTransactions(30);
+        profile.setTotalTransactions(10);
         profile.getMerchantCategoryFrequency().put("ONLINE_SHOPPING", 5);
 
         boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(lateNightTransaction, profile)
@@ -146,15 +146,15 @@ class FraudDetectionServiceTest {
             .amount(BigDecimal.valueOf(1000))
             .isInternational(false)
             .merchantCategory("ELECTRONICS")
-            .createdAt(Instant.now())
+            .createdAt(Instant.parse("2025-01-01T12:00:00Z"))
             .build();
 
         UserRiskProfile profile = new UserRiskProfile();
         profile.setTotalTransactions(2);
         profile.getMerchantCategoryFrequency().put("ELECTRONICS", 1);
 
-        when(fraudFeatureExtractor.extractFeatures(transaction, profile))
-            .thenReturn(Arrays.asList(0.6, 0.7, 0.5, 0.9, 0.2));
+        // when(fraudFeatureExtractor.extractFeatures(transaction, profile))
+        //     .thenReturn(Arrays.asList(0.6, 0.7, 0.5, 0.9, 0.2));
 
         boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(transaction, profile)
             .block(); // Use block() to get the result
@@ -168,15 +168,15 @@ class FraudDetectionServiceTest {
             .amount(BigDecimal.valueOf(8000))
             .isInternational(true)
             .merchantCategory("CRYPTO")
-            .createdAt(Instant.now().plusSeconds(22 * 60 * 60))  // Late evening
+            .createdAt(Instant.parse("2025-01-01T24:00:00Z"))  // Late evening
             .build();
 
         UserRiskProfile profile = new UserRiskProfile();
         profile.setTotalTransactions(15);
         profile.getMerchantCategoryFrequency().put("CRYPTO", 2);
 
-        when(fraudFeatureExtractor.extractFeatures(multiRiskTransaction, profile))
-            .thenReturn(Arrays.asList(0.8, 1.0, 1.0, 0.8, 0.7));
+        // when(fraudFeatureExtractor.extractFeatures(multiRiskTransaction, profile))
+        //     .thenReturn(Arrays.asList(0.8, 1.0, 1.0, 0.8, 0.7));
 
         boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(multiRiskTransaction, profile)
             .block(); // Use block() to get the result
@@ -190,7 +190,7 @@ class FraudDetectionServiceTest {
             .amount(BigDecimal.valueOf(9999.99))  // Just below high-risk threshold
             .isInternational(false)
             .merchantCategory("ELECTRONICS")
-            .createdAt(Instant.now())
+            .createdAt(Instant.parse("2025-01-01T12:00:00Z"))
             .build();
 
         UserRiskProfile profile = new UserRiskProfile();
@@ -209,7 +209,7 @@ class FraudDetectionServiceTest {
             .amount(BigDecimal.valueOf(5000))
             .isInternational(false)
             .merchantCategory("CRYPTO")
-            .createdAt(Instant.now())
+            .createdAt(Instant.parse("2025-01-01T12:00:00Z"))
             .build();
 
         UserRiskProfile profile = new UserRiskProfile();
@@ -217,8 +217,8 @@ class FraudDetectionServiceTest {
         profile.getMerchantCategoryFrequency().put("CRYPTO", 3);
         profile.setOverallRiskScore(0.7);
 
-        when(fraudFeatureExtractor.extractFeatures(complexTransaction, profile))
-            .thenReturn(Arrays.asList(0.7, 0.9, 0.3, 0.5, 0.2));
+        // when(fraudFeatureExtractor.extractFeatures(complexTransaction, profile))
+        //     .thenReturn(Arrays.asList(0.7, 0.9, 0.3, 0.5, 0.2));
 
         boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(complexTransaction, profile)
             .block(); // Use block() to get the result
