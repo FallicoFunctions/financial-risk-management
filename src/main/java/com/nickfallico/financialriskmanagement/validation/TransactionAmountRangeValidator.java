@@ -4,19 +4,24 @@ import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 import java.math.BigDecimal;
 
-public class TransactionAmountRangeValidator implements ConstraintValidator<ValidTransactionAmount, BigDecimal> {
-    private double min;
-    private double max;
+public class TransactionAmountRangeValidator
+        implements ConstraintValidator<ValidTransactionAmount, BigDecimal> {
+
+    private BigDecimal min;
+    private BigDecimal max;
 
     @Override
     public void initialize(ValidTransactionAmount constraintAnnotation) {
-        this.min = constraintAnnotation.min();
-        this.max = constraintAnnotation.max();
+        this.min = BigDecimal.valueOf(constraintAnnotation.min());
+        this.max = BigDecimal.valueOf(constraintAnnotation.max());
     }
 
     @Override
     public boolean isValid(BigDecimal value, ConstraintValidatorContext context) {
-        if (value == null) return false;
-        return value.doubleValue() >= min && value.doubleValue() <= max;
+        // Defer null handling to @NotNull so you get exactly one violation
+        if (value == null) return true;
+
+        // Inclusive range check: min ≤ value ≤ max
+        return value.compareTo(min) >= 0 && value.compareTo(max) <= 0;
     }
 }
