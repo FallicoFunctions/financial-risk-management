@@ -1,0 +1,52 @@
+databaseChangeLog:
+  - changeSet:
+      id: 2025-10-30-user-risk-profiles
+      author: nick
+      changes:
+        - createTable:
+            tableName: user_risk_profiles
+            columns:
+              - column:
+                  name: user_id
+                  type: varchar(64)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: average_transaction_amount
+                  type: double precision
+                  defaultValueNumeric: 0
+              - column:
+                  name: total_transactions
+                  type: integer
+                  defaultValueNumeric: 0
+              - column:
+                  name: total_transaction_value
+                  type: double precision
+                  defaultValueNumeric: 0
+              - column:
+                  name: high_risk_transactions
+                  type: integer
+                  defaultValueNumeric: 0
+              - column:
+                  name: international_transactions
+                  type: integer
+                  defaultValueNumeric: 0
+              - column:
+                  name: behavioral_risk_score
+                  type: double precision
+                  defaultValueNumeric: 0
+              - column:
+                  name: transaction_risk_score
+                  type: double precision
+                  defaultValueNumeric: 0
+              - column:
+                  name: overall_risk_score
+                  type: double precision
+                  defaultValueNumeric: 0
+              - column:
+                  name: first_transaction_date
+                  type: timestamp with time zone
+              - column:
+                  name: last_transaction_date
+                  type: timestamp with time zone
