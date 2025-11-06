@@ -1,0 +1,30 @@
+databaseChangeLog:
+  - changeSet:
+      id: 2025-11-05-merchant-frequency-table
+      author: nick
+      changes:
+        - createTable:
+            tableName: merchant_category_frequency
+            columns:
+              - column:
+                  name: frequency_id
+                  type: varchar(64)
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: user_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: category_frequencies
+                  type: TEXT
+                  remarks: "JSON serialized Map"
+              - column:
+                  name: last_updated
+                  type: timestamp with time zone
+        - createIndex:
+            tableName: merchant_category_frequency
+            columns:
+              - column:
+                  name: user_id

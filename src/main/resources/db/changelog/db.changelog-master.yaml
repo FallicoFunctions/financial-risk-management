@@ -5,3 +5,6 @@ databaseChangeLog:
   - include:
       file: 2025-10-30-create-user-risk-profiles.yaml
       relativeToChangelogFile: true
+  - include:
+      file: 2025-11-05-separate-merchant-frequency.yaml
+      relativeToChangelogFile: true
