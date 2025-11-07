@@ -1,0 +1,58 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-transactions-table
+      author: nick
+      changes:
+        - createTable:
+            tableName: transactions
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: amount
+                  type: decimal(19,4)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: currency
+                  type: varchar(3)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+              - column:
+                  name: transaction_type
+                  type: varchar(50)
+              - column:
+                  name: merchant_category
+                  type: varchar(255)
+              - column:
+                  name: merchant_name
+                  type: varchar(255)
+              - column:
+                  name: is_international
+                  type: boolean
+        - createIndex:
+            tableName: transactions
+            columns:
+              - column:
+                  name: user_id
+              - column:
+                  name: created_at
+        - createIndex:
+            tableName: transactions
+            columns:
+              - column:
+                  name: merchant_category
