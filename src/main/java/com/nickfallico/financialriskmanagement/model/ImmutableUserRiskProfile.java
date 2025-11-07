@@ -1,12 +1,13 @@
 package com.nickfallico.financialriskmanagement.model;
 
-import jakarta.persistence.*;
-import lombok.Builder;
-import lombok.Getter;
+import java.time.Instant;
+
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
 
-import java.time.Instant;
+import jakarta.persistence.Entity;
+import lombok.Builder;
+import lombok.Getter;
 
 /**
  * Immutable value object representing user risk profile.

@@ -89,41 +89,20 @@ public class UserProfileService {
     public Mono<Void> updateProfileAfterTransaction(Transactions transaction) {
         Timer.Sample sample = Timer.start(meterRegistry);
         
-        // Load all transactions for this user
         return transactionRepository.findByUserId(transaction.getUserId())
             .collectList()
             .flatMap(allTransactions -> {
-                // Compute profile from transaction history
                 ImmutableUserRiskProfile newProfile = 
                     computeProfileFromTransactionHistory(
                         transaction.getUserId(),
                         allTransactions
                     );
                 
-                // Compute merchant frequencies
                 MerchantCategoryFrequency frequencies = 
                     computeMerchantFrequencies(transaction.getUserId(), allTransactions);
                 
-                // Save profile (upsert)
-                Mono<ImmutableUserRiskProfile> saveProfile = 
-                    immutableUserRiskProfileRepository.findById(transaction.getUserId())
-                        .flatMap(existing -> immutableUserRiskProfileRepository.save(newProfile))
-                        .switchIfEmpty(immutableUserRiskProfileRepository.save(newProfile));
-                
-                // Save merchant frequency (upsert)
-                Mono<MerchantCategoryFrequency> saveFrequency = 
-                    merchantCategoryFrequencyRepository.findByUserId(transaction.getUserId())
-                        .flatMap(existing -> {
-                            // Update existing record with new frequency_id preserved
-                            MerchantCategoryFrequency updated = frequencies.toBuilder()
-                                .frequencyId(existing.getFrequencyId())
-                                .build();
-                            return merchantCategoryFrequencyRepository.save(updated);
-                        })
-                        .switchIfEmpty(merchantCategoryFrequencyRepository.save(frequencies));
-                
-                // Execute both saves in parallel
-                return Mono.zip(saveProfile, saveFrequency)
+                return immutableUserRiskProfileRepository.upsert(newProfile)
+                    .then(merchantCategoryFrequencyRepository.upsert(frequencies))
                     .then(Mono.defer(() -> {
                         sample.stop(meterRegistry.timer("update_profile_time"));
                         meterRegistry.counter("profile_updates").increment();

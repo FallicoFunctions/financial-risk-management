@@ -1,5 +1,6 @@
 package com.nickfallico.financialriskmanagement.repository;
 
+import org.springframework.data.r2dbc.repository.Query;
 import org.springframework.data.r2dbc.repository.R2dbcRepository;
 import org.springframework.stereotype.Repository;
 
@@ -25,4 +26,11 @@ public interface MerchantCategoryFrequencyRepository
      * Delete all frequency data for user (useful for data cleanup).
      */
     Mono<Void> deleteByUserId(String userId);
+
+    @Query("INSERT INTO merchant_category_frequency (frequency_id, user_id, category_frequencies, last_updated) " +
+       "VALUES (:#{#freq.frequencyId}, :#{#freq.userId}, :#{#freq.categoryFrequencies}::jsonb, :#{#freq.lastUpdated}) " +
+       "ON CONFLICT (user_id) DO UPDATE SET " +  // Changed from frequency_id
+       "category_frequencies = :#{#freq.categoryFrequencies}::jsonb, " +
+       "last_updated = :#{#freq.lastUpdated}")
+    Mono<Void> upsert(MerchantCategoryFrequency freq);
 }
