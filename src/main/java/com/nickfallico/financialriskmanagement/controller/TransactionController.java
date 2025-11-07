@@ -1,7 +1,7 @@
 package com.nickfallico.financialriskmanagement.controller;
 
 import com.nickfallico.financialriskmanagement.dto.TransactionDTO;
-import com.nickfallico.financialriskmanagement.model.Transaction;
+import com.nickfallico.financialriskmanagement.model.Transactions;
 import com.nickfallico.financialriskmanagement.service.TransactionService;
 
 import jakarta.validation.Valid;
@@ -24,7 +24,7 @@ public class TransactionController {
     private final TransactionService transactionService;
 
     @PostMapping
-    public Mono<ResponseEntity<Transaction>> createTransaction(
+    public Mono<ResponseEntity<Transactions>> createTransaction(
         @Valid @RequestBody TransactionDTO transactionDTO
     ) {
         return transactionService.createTransaction(transactionDTO)
@@ -33,7 +33,7 @@ public class TransactionController {
     }
 
     @GetMapping("/user/{userId}")
-    public Flux<Transaction> getUserTransactions(@PathVariable String userId) {
+    public Flux<Transactions> getUserTransactions(@PathVariable String userId) {
         return transactionService.getUserTransactions(userId);
     }
 
@@ -43,7 +43,7 @@ public class TransactionController {
     }
 
     @GetMapping("/merchant-category/{category}")
-    public Flux<Transaction> getTransactionsByMerchantCategory(@PathVariable String category) {
+    public Flux<Transactions> getTransactionsByMerchantCategory(@PathVariable String category) {
         return transactionService.getTransactionsByMerchantCategory(category);
     }
 
@@ -53,12 +53,12 @@ public class TransactionController {
     }
 
     @GetMapping("/top-5-highest/{userId}")
-    public Flux<Transaction> getTop5HighestTransactions(@PathVariable String userId) {
+    public Flux<Transactions> getTop5HighestTransactions(@PathVariable String userId) {
         return transactionService.getTop5HighestTransactions(userId);
     }
 
     @GetMapping("/above-threshold/{threshold}")
-    public Flux<Transaction> getTransactionsAboveThreshold(
+    public Flux<Transactions> getTransactionsAboveThreshold(
         @Positive(message = "Threshold must be positive") 
         @PathVariable BigDecimal threshold) {
         return transactionService.getTransactionsAboveThreshold(threshold);

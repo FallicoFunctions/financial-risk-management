@@ -1,6 +1,7 @@
 package com.nickfallico.financialriskmanagement.repository;
 
-import com.nickfallico.financialriskmanagement.model.Transaction;
+import com.nickfallico.financialriskmanagement.model.Transactions;
+import com.nickfallico.financialriskmanagement.model.Transactions.TransactionType;
 
 import org.springframework.data.r2dbc.repository.Query;
 import org.springframework.data.r2dbc.repository.R2dbcRepository;
@@ -13,11 +14,11 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Repository
-public interface TransactionRepository extends R2dbcRepository<Transaction, UUID> {
+public interface TransactionRepository extends R2dbcRepository<Transactions, UUID> {
     
-    Flux<Transaction> findByUserId(String userId);
+    Flux<Transactions> findByUserId(String userId);
     
-    Flux<Transaction> findByUserIdAndCreatedAtBetween(
+    Flux<Transactions> findByUserIdAndCreatedAtBetween(
         String userId, 
         Instant start, 
         Instant end
@@ -30,18 +31,31 @@ public interface TransactionRepository extends R2dbcRepository<Transaction, UUID
         Instant end
     );
 
+    @Query("INSERT INTO transactions (id, user_id, amount, currency, created_at, transaction_type, merchant_category, is_international, merchant_name) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *")
+    Mono<Transactions> saveTransaction(
+        UUID id,
+        String userId, 
+        BigDecimal amount, 
+        String currency, 
+        Instant createdAt, 
+        TransactionType transactionType, 
+        String merchantCategory, 
+        Boolean isInternational,
+        String merchantName
+    );
+
     // Find transactions by merchant category
-    Flux<Transaction> findByMerchantCategory(String merchantCategory);
+    Flux<Transactions> findByMerchantCategory(String merchantCategory);
 
     // Count transactions by user and international status
     Mono<Long> countByUserIdAndIsInternational(String userId, Boolean isInternational);
 
     // Find top 5 highest value transactions for a user
     @Query("SELECT * FROM transactions WHERE user_id = :userId ORDER BY amount DESC LIMIT 5")
-    Flux<Transaction> findTop5HighestTransactionsByUserId(String userId);
+    Flux<Transactions> findTop5HighestTransactionsByUserId(String userId);
 
     // Find transactions exceeding a specific amount threshold
-    Flux<Transaction> findByAmountGreaterThan(BigDecimal threshold);
+    Flux<Transactions> findByAmountGreaterThan(BigDecimal threshold);
 
     // Calculate average transaction amount by merchant category
     @Query("SELECT AVG(amount) FROM transactions WHERE merchant_category = :merchantCategory")

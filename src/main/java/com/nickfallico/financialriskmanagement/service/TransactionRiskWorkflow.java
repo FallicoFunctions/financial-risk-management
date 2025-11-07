@@ -1,9 +1,11 @@
 package com.nickfallico.financialriskmanagement.service;
 
+import java.util.UUID;
+
 import org.springframework.stereotype.Service;
 
 import com.nickfallico.financialriskmanagement.exception.FraudDetectionException;
-import com.nickfallico.financialriskmanagement.model.Transaction;
+import com.nickfallico.financialriskmanagement.model.Transactions;
 import com.nickfallico.financialriskmanagement.repository.TransactionRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -18,7 +20,11 @@ public class TransactionRiskWorkflow {
     private final UserProfileService profileService;
     private final TransactionRepository txRepository;
     
-    public Mono<Transaction> processTransaction(Transaction transaction) {
+    public Mono<Transactions> processTransaction(Transactions transaction) {
+        // Set the ID if it's not already set
+        if (transaction.getId() == null) {
+            transaction.setId(UUID.randomUUID());
+        }
         return profileService.getUserProfile(transaction.getUserId())
             .zipWith(profileService.getMerchantFrequency(transaction.getUserId()))
             .flatMap(tuple -> {
@@ -35,7 +41,17 @@ public class TransactionRiskWorkflow {
                         return Mono.just(transaction);
                     });
             })
-            .flatMap(txRepository::save)
+            .flatMap(tx -> txRepository.saveTransaction(
+                tx.getId(),
+                tx.getUserId(), 
+                tx.getAmount(), 
+                tx.getCurrency(), 
+                tx.getCreatedAt(), 
+                tx.getTransactionType(), 
+                tx.getMerchantCategory(), 
+                tx.getIsInternational(),
+                tx.getMerchantName()
+            ))
             .flatMap(savedTx -> profileService.updateProfileAfterTransaction(savedTx)
                 .thenReturn(savedTx)
             );

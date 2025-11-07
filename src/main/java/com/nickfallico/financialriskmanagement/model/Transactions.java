@@ -21,7 +21,7 @@ import java.util.UUID;
         @Index(name = "idx_user_created", columnList = "user_id, created_at"),
         @Index(name = "idx_merchant", columnList = "merchant_category")
     })
-public class Transaction {
+public class Transactions {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

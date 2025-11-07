@@ -8,7 +8,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 
 import com.nickfallico.financialriskmanagement.dto.TransactionDTO;
-import com.nickfallico.financialriskmanagement.model.Transaction;
+import com.nickfallico.financialriskmanagement.model.Transactions;
 import com.nickfallico.financialriskmanagement.repository.TransactionRepository;
 
 import io.micrometer.core.instrument.*;
@@ -24,10 +24,10 @@ public class TransactionService {
     private final MeterRegistry meterRegistry;
 
     // Create a new transaction
-    public Mono<Transaction> createTransaction(@Valid TransactionDTO transactionDTO) {
+    public Mono<Transactions> createTransaction(@Valid TransactionDTO transactionDTO) {
         Timer.Sample sample = Timer.start(meterRegistry);
         
-        Transaction transaction = Transaction.builder()
+        Transactions transaction = Transactions.builder()
             .id(UUID.randomUUID())
             .userId(transactionDTO.getUserId())
             .amount(transactionDTO.getAmount())
@@ -67,17 +67,17 @@ public class TransactionService {
     }
 
     // Get transactions for a user
-    public Flux<Transaction> getUserTransactions(String userId) {
+    public Flux<Transactions> getUserTransactions(String userId) {
         return transactionRepository.findByUserId(userId);
     }
 
     // Get transactions within a date range
-    public Flux<Transaction> getTransactionsBetween(String userId, Instant start, Instant end) {
+    public Flux<Transactions> getTransactionsBetween(String userId, Instant start, Instant end) {
         return transactionRepository.findByUserIdAndCreatedAtBetween(userId, start, end);
     }
 
     // Retrieve transactions by merchant category
-    public Flux<Transaction> getTransactionsByMerchantCategory(String merchantCategory) {
+    public Flux<Transactions> getTransactionsByMerchantCategory(String merchantCategory) {
         return transactionRepository.findByMerchantCategory(merchantCategory);
     }
 
@@ -93,7 +93,7 @@ public class TransactionService {
     }
 
     // Find a user's top 5 highest value transactions
-    public Flux<Transaction> getTop5HighestTransactions(String userId) {
+    public Flux<Transactions> getTop5HighestTransactions(String userId) {
         Timer.Sample sample = Timer.start(meterRegistry);
         
         return transactionRepository.findTop5HighestTransactionsByUserId(userId)
@@ -105,7 +105,7 @@ public class TransactionService {
     }
 
     // Get transactions above a certain amount
-    public Flux<Transaction> getTransactionsAboveThreshold(BigDecimal threshold) {
+    public Flux<Transactions> getTransactionsAboveThreshold(BigDecimal threshold) {
         Timer.Sample sample = Timer.start(meterRegistry);
         
         return transactionRepository.findByAmountGreaterThan(threshold)

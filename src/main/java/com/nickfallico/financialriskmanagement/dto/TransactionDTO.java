@@ -7,7 +7,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-import com.nickfallico.financialriskmanagement.model.Transaction.TransactionType;
+import com.nickfallico.financialriskmanagement.model.Transactions.TransactionType;
 import com.nickfallico.financialriskmanagement.validation.ValidMerchantCategory;
 
 @Data

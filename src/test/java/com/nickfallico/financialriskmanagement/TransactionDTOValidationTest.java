@@ -1,7 +1,7 @@
 package com.nickfallico.financialriskmanagement;
 
 import com.nickfallico.financialriskmanagement.dto.TransactionDTO;
-import com.nickfallico.financialriskmanagement.model.Transaction.TransactionType;
+import com.nickfallico.financialriskmanagement.model.Transactions.TransactionType;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
