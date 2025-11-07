@@ -18,7 +18,7 @@ databaseChangeLog:
                     nullable: false
               - column:
                   name: category_frequencies
-                  type: TEXT
+                  type: JSONB
                   remarks: "JSON serialized Map"
               - column:
                   name: last_updated
