@@ -1,6 +1,6 @@
 package com.nickfallico.financialriskmanagement;
 
-import com.nickfallico.financialriskmanagement.model.Transaction;
+import com.nickfallico.financialriskmanagement.model.Transactions;
 import com.nickfallico.financialriskmanagement.service.TransactionRiskWorkflow;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,12 +35,12 @@ public class TransactionProcessingPerformanceTest {
 
         Flux.range(0, totalTransactions)
             .flatMap(i -> transactionRiskWorkflow.processTransaction(
-                Transaction.builder()
+                Transactions.builder()
                     .id(UUID.randomUUID())
                     .userId("perf_user_" + i)
                     .amount(BigDecimal.valueOf(Math.random() * 1000))
                     .currency("USD")
-                    .transactionType(Transaction.TransactionType.PURCHASE)
+                    .transactionType(Transactions.TransactionType.PURCHASE)
                     .merchantCategory(i % 2 == 0 ? "GROCERIES" : "ELECTRONICS")
                     .isInternational(false)
                     .createdAt(Instant.now())
@@ -52,6 +52,6 @@ public class TransactionProcessingPerformanceTest {
         long duration = endTime - startTime;
 
         // Ensure processing takes less than 10 seconds
-        assertTrue(duration < 10000, "Transaction processing took too long: " + duration + "ms");
+        assertTrue(duration < 10000, "Transactions processing took too long: " + duration + "ms");
     }
 }
