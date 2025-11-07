@@ -35,8 +35,8 @@ public class MerchantCategoryFrequency {
     @Column(nullable = false)
     private String userId;
     
-    // Serialized as JSON in DB; immutable Map
-    @Column(columnDefinition = "TEXT")
+    // Serialized as JSONB in DB; immutable Map
+    @Column(columnDefinition = "JSONB")
     private Map<String, Integer> categoryFrequencies;
     
     @Column(nullable = false)
@@ -62,7 +62,7 @@ public class MerchantCategoryFrequency {
         updated.merge(category, 1, Integer::sum);
         
         return this.toBuilder()
-            .categoryFrequencies(Collections.unmodifiableMap(updated))
+            .categoryFrequencies(updated)
             .lastUpdated(Instant.now())
             .build();
     }
