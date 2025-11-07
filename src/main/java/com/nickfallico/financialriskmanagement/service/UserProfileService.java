@@ -2,10 +2,10 @@ package com.nickfallico.financialriskmanagement.service;
 
 import com.nickfallico.financialriskmanagement.model.ImmutableUserRiskProfile;
 import com.nickfallico.financialriskmanagement.model.MerchantCategoryFrequency;
-import com.nickfallico.financialriskmanagement.model.Transaction;
+import com.nickfallico.financialriskmanagement.model.Transactions;
 import com.nickfallico.financialriskmanagement.repository.MerchantCategoryFrequencyRepository;
 import com.nickfallico.financialriskmanagement.repository.TransactionRepository;
-import com.nickfallico.financialriskmanagement.repository.UserRiskProfileRepository;
+import com.nickfallico.financialriskmanagement.repository.ImmutableUserRiskProfileRepository;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
 public class UserProfileService {
     
     private final TransactionRepository transactionRepository;
-    private final UserRiskProfileRepository userRiskProfileRepository;
+    private final ImmutableUserRiskProfileRepository immutableUserRiskProfileRepository;
     private final MerchantCategoryFrequencyRepository merchantCategoryFrequencyRepository;
     private final MeterRegistry meterRegistry;
     
@@ -51,7 +51,7 @@ public class UserProfileService {
     public Mono<ImmutableUserRiskProfile> getUserProfile(String userId) {
         Timer.Sample sample = Timer.start(meterRegistry);
         
-        return userRiskProfileRepository.findById(userId)
+        return immutableUserRiskProfileRepository.findById(userId)
             .switchIfEmpty(Mono.fromSupplier(() -> 
                 ImmutableUserRiskProfile.createNew(userId)
             ))
@@ -70,7 +70,7 @@ public class UserProfileService {
         cacheManager = "redisCacheManager"
     )
     public Mono<MerchantCategoryFrequency> getMerchantFrequency(String userId) {
-        return userRiskProfileRepository.findById(userId)
+        return immutableUserRiskProfileRepository.findById(userId)
             .flatMapMany(profile -> transactionRepository.findByUserId(userId))
             .collectList()
             .map(transactions -> computeMerchantFrequencies(userId, transactions))
@@ -87,7 +87,7 @@ public class UserProfileService {
         value = {"userProfiles", "merchantFrequencies"},
         key = "#transaction.userId"
     )
-    public Mono<Void> updateProfileAfterTransaction(Transaction transaction) {
+    public Mono<Void> updateProfileAfterTransaction(Transactions transaction) {
         Timer.Sample sample = Timer.start(meterRegistry);
         
         // Load all transactions for this user
@@ -106,7 +106,7 @@ public class UserProfileService {
                     computeMerchantFrequencies(transaction.getUserId(), allTransactions);
                 
                 // Persist both profile and frequencies
-                return userRiskProfileRepository.save(newProfile)
+                return immutableUserRiskProfileRepository.save(newProfile)
                     .then(merchantCategoryFrequencyRepository.save(frequencies))
                     .then(Mono.defer(() -> {
                         sample.stop(meterRegistry.timer("update_profile_time"));
@@ -123,7 +123,7 @@ public class UserProfileService {
      */
     private ImmutableUserRiskProfile computeProfileFromTransactionHistory(
         String userId,
-        List<Transaction> allTransactions) {
+        List<Transactions> allTransactions) {
         
         if (allTransactions.isEmpty()) {
             return ImmutableUserRiskProfile.createNew(userId);
@@ -131,14 +131,14 @@ public class UserProfileService {
         
         // Compute metrics using streams (functional approach, no loops)
         double avgAmount = allTransactions.stream()
-            .map(Transaction::getAmount)
+            .map(Transactions::getAmount)
             .map(BigDecimal::doubleValue)
             .mapToDouble(Double::doubleValue)
             .average()
             .orElse(0.0);
         
         double totalValue = allTransactions.stream()
-            .map(Transaction::getAmount)
+            .map(Transactions::getAmount)
             .map(BigDecimal::doubleValue)
             .mapToDouble(Double::doubleValue)
             .sum();
@@ -152,12 +152,12 @@ public class UserProfileService {
             .count();
         
         Instant firstTx = allTransactions.stream()
-            .map(Transaction::getCreatedAt)
+            .map(Transactions::getCreatedAt)
             .min(Comparator.naturalOrder())
             .orElse(Instant.now());
         
         Instant lastTx = allTransactions.stream()
-            .map(Transaction::getCreatedAt)
+            .map(Transactions::getCreatedAt)
             .max(Comparator.naturalOrder())
             .orElse(Instant.now());
         
@@ -186,10 +186,10 @@ public class UserProfileService {
      */
     private MerchantCategoryFrequency computeMerchantFrequencies(
         String userId,
-        List<Transaction> allTransactions) {
+        List<Transactions> allTransactions) {
         
         Map<String, Integer> frequencies = allTransactions.stream()
-            .map(Transaction::getMerchantCategory)
+            .map(Transactions::getMerchantCategory)
             .filter(cat -> cat != null && !cat.isEmpty())
             .collect(Collectors.groupingBy(
                 String::toString,
@@ -199,7 +199,7 @@ public class UserProfileService {
         return MerchantCategoryFrequency.builder()
             .frequencyId(UUID.randomUUID().toString())
             .userId(userId)
-            .categoryFrequencies(Collections.unmodifiableMap(frequencies))
+            .categoryFrequencies(frequencies)
             .lastUpdated(Instant.now())
             .build();
     }
@@ -207,7 +207,7 @@ public class UserProfileService {
     /**
      * Pure function: Compute behavioral risk from transaction patterns.
      */
-    private double computeBehavioralRisk(List<Transaction> transactions) {
+    private double computeBehavioralRisk(List<Transactions> transactions) {
         if (transactions.isEmpty()) return 0.5;
         
         double baseRisk = 0.5;
@@ -225,7 +225,7 @@ public class UserProfileService {
         
         // Factor: Merchant diversity
         long uniqueMerchants = transactions.stream()
-            .map(Transaction::getMerchantCategory)
+            .map(Transactions::getMerchantCategory)
             .filter(cat -> cat != null && !cat.isEmpty())
             .distinct()
             .count();
@@ -237,18 +237,18 @@ public class UserProfileService {
     /**
      * Pure function: Compute transaction risk from amount patterns.
      */
-    private double computeTransactionRisk(List<Transaction> transactions) {
+    private double computeTransactionRisk(List<Transactions> transactions) {
         if (transactions.isEmpty()) return 0.5;
         
         double avgAmount = transactions.stream()
-            .map(Transaction::getAmount)
+            .map(Transactions::getAmount)
             .map(BigDecimal::doubleValue)
             .mapToDouble(Double::doubleValue)
             .average()
             .orElse(0.0);
         
         double maxAmount = transactions.stream()
-            .map(Transaction::getAmount)
+            .map(Transactions::getAmount)
             .map(BigDecimal::doubleValue)
             .mapToDouble(Double::doubleValue)
             .max()
@@ -263,7 +263,7 @@ public class UserProfileService {
         return Math.min(riskFromDeviation + 0.3, 1.0);
     }
     
-    private boolean isHighRiskTransaction(Transaction tx) {
+    private boolean isHighRiskTransaction(Transactions tx) {
         String category = tx.getMerchantCategory();
         BigDecimal amount = tx.getAmount();
         
