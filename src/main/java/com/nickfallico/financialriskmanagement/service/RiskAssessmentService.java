@@ -1,6 +1,6 @@
 package com.nickfallico.financialriskmanagement.service;
 
-import com.nickfallico.financialriskmanagement.model.Transaction;
+import com.nickfallico.financialriskmanagement.model.Transactions;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -13,13 +13,13 @@ public class RiskAssessmentService {
 
     private final TransactionService transactionService;
 
-    public Mono<RiskScore> assessTransactionRisk(Transaction transaction) {
+    public Mono<RiskScore> assessTransactionRisk(Transactions transaction) {
         // Use transactionService to get daily total for risk assessment
         return transactionService.getDailyTotal(transaction.getUserId())
             .map(dailyTotal -> calculateRiskScore(transaction, dailyTotal));
     }
 
-    private RiskScore calculateRiskScore(Transaction transaction, BigDecimal dailyTotal) {
+    private RiskScore calculateRiskScore(Transactions transaction, BigDecimal dailyTotal) {
         int baseScore = 50; // Neutral risk score
         
         // Adjust risk based on transaction characteristics

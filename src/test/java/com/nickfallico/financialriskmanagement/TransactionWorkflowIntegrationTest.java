@@ -1,12 +1,15 @@
 package com.nickfallico.financialriskmanagement;
 
 import com.nickfallico.financialriskmanagement.dto.TransactionDTO;
-import com.nickfallico.financialriskmanagement.model.Transaction;
+import com.nickfallico.financialriskmanagement.model.Transactions;
 import com.nickfallico.financialriskmanagement.service.TransactionRiskWorkflow;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import reactor.test.StepVerifier;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -32,13 +35,13 @@ public class TransactionWorkflowIntegrationTest {
             .userId("user123")
             .amount(BigDecimal.valueOf(100.00))
             .currency("USD")
-            .transactionType(Transaction.TransactionType.PURCHASE)
+            .transactionType(Transactions.TransactionType.PURCHASE)
             .merchantCategory("GROCERIES")
             .isInternational(false)
             .build();
 
         StepVerifier.create(transactionRiskWorkflow.processTransaction(
-            Transaction.builder()
+            Transactions.builder()
                 .userId(transactionDTO.getUserId())
                 .amount(transactionDTO.getAmount())
                 .currency(transactionDTO.getCurrency())
@@ -48,7 +51,11 @@ public class TransactionWorkflowIntegrationTest {
                 .createdAt(Instant.now())
                 .build()
         ))
-        .expectNextMatches(transaction -> transaction.getUserId().equals("user123"))
+        .expectNextMatches(transaction -> {
+            assertNotNull(transaction.getId());
+            assertEquals("user123", transaction.getUserId());
+            return true;
+        })
         .verifyComplete();
     }
 
@@ -58,13 +65,13 @@ public class TransactionWorkflowIntegrationTest {
             .userId("user456")
             .amount(BigDecimal.valueOf(50000))
             .currency("USD")
-            .transactionType(Transaction.TransactionType.PURCHASE)
+            .transactionType(Transactions.TransactionType.PURCHASE)
             .merchantCategory("GAMBLING")
             .isInternational(true)
             .build();
 
         StepVerifier.create(transactionRiskWorkflow.processTransaction(
-            Transaction.builder()
+            Transactions.builder()
                 .userId(highRiskTransaction.getUserId())
                 .amount(highRiskTransaction.getAmount())
                 .currency(highRiskTransaction.getCurrency())

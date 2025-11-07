@@ -4,7 +4,7 @@ import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.List;
 import org.springframework.stereotype.Component;
-import com.nickfallico.financialriskmanagement.model.Transaction;
+import com.nickfallico.financialriskmanagement.model.Transactions;
 import com.nickfallico.financialriskmanagement.model.ImmutableUserRiskProfile;
 import com.nickfallico.financialriskmanagement.model.MerchantCategoryFrequency;
 
@@ -20,7 +20,7 @@ public class FraudFeatureExtractor {
      * Takes both immutable profile and merchant frequencies.
      */
     public List<Double> extractFeatures(
-        Transaction transaction,
+        Transactions transaction,
         ImmutableUserRiskProfile profile,
         MerchantCategoryFrequency merchantFrequency) {
         
@@ -38,7 +38,7 @@ public class FraudFeatureExtractor {
     }
     
     private double calculateTransactionAmountRisk(
-        Transaction transaction,
+        Transactions transaction,
         ImmutableUserRiskProfile profile) {
         
         double currentAmount = transaction.getAmount().doubleValue();
@@ -55,7 +55,7 @@ public class FraudFeatureExtractor {
      * Uses MerchantCategoryFrequency to check if category is familiar to user.
      */
     private double calculateMerchantCategoryRisk(
-        Transaction transaction,
+        Transactions transaction,
         MerchantCategoryFrequency merchantFrequency) {
         
         String merchantCategory = transaction.getMerchantCategory();
@@ -73,7 +73,7 @@ public class FraudFeatureExtractor {
         return categoryFrequency < 3 ? 0.7 : 0.3;
     }
     
-    private double calculateTemporalRisk(Transaction transaction) {
+    private double calculateTemporalRisk(Transactions transaction) {
         int hour = transaction.getCreatedAt()
             .atZone(ZoneId.systemDefault())
             .getHour();
@@ -85,7 +85,7 @@ public class FraudFeatureExtractor {
     }
     
     private double calculateFrequencyRisk(
-        Transaction transaction,
+        Transactions transaction,
         ImmutableUserRiskProfile profile) {
         
         int totalTransactions = profile.getTotalTransactions();
@@ -96,7 +96,7 @@ public class FraudFeatureExtractor {
         return 0.2;
     }
     
-    private double calculateInternationalRisk(Transaction transaction) {
+    private double calculateInternationalRisk(Transactions transaction) {
         return Boolean.TRUE.equals(transaction.getIsInternational()) ? 0.7 : 0.2;
     }
 }

@@ -1,6 +1,6 @@
 package com.nickfallico.financialriskmanagement.ml;
 
-import com.nickfallico.financialriskmanagement.model.Transaction;
+import com.nickfallico.financialriskmanagement.model.Transactions;
 import com.nickfallico.financialriskmanagement.model.ImmutableUserRiskProfile;
 import org.springframework.stereotype.Component;
 
@@ -24,7 +24,7 @@ public class FraudDetectionModel {
     private static final int HIGH_FREQUENCY_THRESHOLD = 50;
     private static final int VERY_HIGH_FREQUENCY_THRESHOLD = 200;
 
-    public double predictFraudProbability(Transaction transaction, ImmutableUserRiskProfile profile) {
+    public double predictFraudProbability(Transactions transaction, ImmutableUserRiskProfile profile) {
         double baseRiskScore = calculateBaseRiskScore(transaction, profile);
         double categoryRiskMultiplier = calculateCategoryRiskMultiplier(transaction);
         double temporalRiskFactor = calculateTemporalRiskFactor(transaction, profile);
@@ -38,7 +38,7 @@ public class FraudDetectionModel {
         return Math.min(Math.max(finalRiskScore, 0.0), 1.0);
     }
 
-    private double calculateBaseRiskScore(Transaction transaction, ImmutableUserRiskProfile profile) {
+    private double calculateBaseRiskScore(Transactions transaction, ImmutableUserRiskProfile profile) {
         double amountRisk = calculateAmountRisk(transaction);
         double internationalRisk = calculateInternationalRisk(transaction);
         double averageAmountDeviation = calculateAverageAmountDeviation(transaction, profile);
@@ -46,18 +46,18 @@ public class FraudDetectionModel {
         return (amountRisk + internationalRisk + averageAmountDeviation) / 3;
     }
 
-    private double calculateAmountRisk(Transaction transaction) {
+    private double calculateAmountRisk(Transactions transaction) {
         if (transaction.getAmount().compareTo(HIGH_RISK_TRANSACTION_THRESHOLD) > 0) {
             return 1.0;
         }
         return transaction.getAmount().doubleValue() / HIGH_RISK_TRANSACTION_THRESHOLD.doubleValue();
     }
 
-    private double calculateInternationalRisk(Transaction transaction) {
+    private double calculateInternationalRisk(Transactions transaction) {
         return Boolean.TRUE.equals(transaction.getIsInternational()) ? 0.7 : 0.2;
     }
 
-    private double calculateAverageAmountDeviation(Transaction transaction, ImmutableUserRiskProfile profile) {
+    private double calculateAverageAmountDeviation(Transactions transaction, ImmutableUserRiskProfile profile) {
         if (profile.getAverageTransactionAmount() == 0) return 0.5;
         
         double currentAmount = transaction.getAmount().doubleValue();
@@ -67,13 +67,13 @@ public class FraudDetectionModel {
         return Math.min(deviation, 1.0);
     }
 
-    private double calculateCategoryRiskMultiplier(Transaction transaction) {
+    private double calculateCategoryRiskMultiplier(Transactions transaction) {
         return MERCHANT_CATEGORY_RISK_MULTIPLIERS.getOrDefault(
             transaction.getMerchantCategory(), 1.0
         );
     }
 
-    private double calculateTemporalRiskFactor(Transaction transaction, ImmutableUserRiskProfile profile) {
+    private double calculateTemporalRiskFactor(Transactions transaction, ImmutableUserRiskProfile profile) {
         Instant lastTransactionTime = profile.getLastTransactionDate();
         if (lastTransactionTime == null) return 1.0;
 

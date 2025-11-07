@@ -4,7 +4,7 @@ import com.nickfallico.financialriskmanagement.ml.FraudRule;
 import com.nickfallico.financialriskmanagement.ml.FraudRuleEngine;
 import com.nickfallico.financialriskmanagement.model.ImmutableUserRiskProfile;
 import com.nickfallico.financialriskmanagement.model.MerchantCategoryFrequency;
-import com.nickfallico.financialriskmanagement.model.Transaction;
+import com.nickfallico.financialriskmanagement.model.Transactions;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
@@ -33,7 +33,7 @@ public class FraudDetectionService {
      * Immutable design: profile and frequency are read-only.
      */
     public Mono<FraudAssessment> assessFraud(
-        Transaction transaction,
+        Transactions transaction,
         ImmutableUserRiskProfile profile,
         MerchantCategoryFrequency merchantFrequency) {
         
@@ -101,7 +101,7 @@ public class FraudDetectionService {
     
     private void recordMetrics(
         Timer.Sample sample,
-        Transaction tx,
+        Transactions tx,
         List<FraudRule.FraudViolation> violations,
         double fraudProbability,
         FraudRuleEngine.FraudAction action) {
@@ -125,7 +125,7 @@ public class FraudDetectionService {
     }
     
     private void logAssessment(
-        Transaction tx,
+        Transactions tx,
         List<FraudRule.FraudViolation> violations,
         double fraudProbability,
         FraudRuleEngine.FraudAction action) {

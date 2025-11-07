@@ -21,7 +21,7 @@ public interface FraudRule {
      * Immutable context containing all data needed for fraud evaluation.
      */
     record FraudEvaluationContext(
-        com.nickfallico.financialriskmanagement.model.Transaction transaction,
+        com.nickfallico.financialriskmanagement.model.Transactions transaction,
         com.nickfallico.financialriskmanagement.model.ImmutableUserRiskProfile profile,
         com.nickfallico.financialriskmanagement.model.MerchantCategoryFrequency merchantFrequency
     ) {}
