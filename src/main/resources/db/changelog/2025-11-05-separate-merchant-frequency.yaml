@@ -23,6 +23,10 @@ databaseChangeLog:
               - column:
                   name: last_updated
                   type: timestamp with time zone
+        - addUniqueConstraint:
+            tableName: merchant_category_frequency
+            columnNames: user_id
+            constraintName: uk_merchant_frequency_user_id
         - createIndex:
             tableName: merchant_category_frequency
             columns:
