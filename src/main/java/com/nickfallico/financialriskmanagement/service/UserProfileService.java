@@ -17,7 +17,6 @@ import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -105,9 +104,26 @@ public class UserProfileService {
                 MerchantCategoryFrequency frequencies = 
                     computeMerchantFrequencies(transaction.getUserId(), allTransactions);
                 
-                // Persist both profile and frequencies
-                return immutableUserRiskProfileRepository.save(newProfile)
-                    .then(merchantCategoryFrequencyRepository.save(frequencies))
+                // Save profile (upsert)
+                Mono<ImmutableUserRiskProfile> saveProfile = 
+                    immutableUserRiskProfileRepository.findById(transaction.getUserId())
+                        .flatMap(existing -> immutableUserRiskProfileRepository.save(newProfile))
+                        .switchIfEmpty(immutableUserRiskProfileRepository.save(newProfile));
+                
+                // Save merchant frequency (upsert)
+                Mono<MerchantCategoryFrequency> saveFrequency = 
+                    merchantCategoryFrequencyRepository.findByUserId(transaction.getUserId())
+                        .flatMap(existing -> {
+                            // Update existing record with new frequency_id preserved
+                            MerchantCategoryFrequency updated = frequencies.toBuilder()
+                                .frequencyId(existing.getFrequencyId())
+                                .build();
+                            return merchantCategoryFrequencyRepository.save(updated);
+                        })
+                        .switchIfEmpty(merchantCategoryFrequencyRepository.save(frequencies));
+                
+                // Execute both saves in parallel
+                return Mono.zip(saveProfile, saveFrequency)
                     .then(Mono.defer(() -> {
                         sample.stop(meterRegistry.timer("update_profile_time"));
                         meterRegistry.counter("profile_updates").increment();
