@@ -1,23 +1,31 @@
 package com.nickfallico.financialriskmanagement;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.nickfallico.financialriskmanagement.ml.FraudFeatureExtractor;
-import com.nickfallico.financialriskmanagement.ml.ProbabilisticFraudModel;
-import com.nickfallico.financialriskmanagement.model.Transaction;
-import com.nickfallico.financialriskmanagement.model.UserRiskProfile;
+import com.nickfallico.financialriskmanagement.ml.FraudRule;
+import com.nickfallico.financialriskmanagement.ml.FraudRuleEngine;
+import com.nickfallico.financialriskmanagement.model.ImmutableUserRiskProfile;
+import com.nickfallico.financialriskmanagement.model.MerchantCategoryFrequency;
+import com.nickfallico.financialriskmanagement.model.Transactions;
 import com.nickfallico.financialriskmanagement.service.FraudDetectionService;
 
 import io.micrometer.core.instrument.MeterRegistry;
@@ -26,203 +34,112 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 @ExtendWith(MockitoExtension.class)
 class FraudDetectionServiceTest {
 
-    private FraudDetectionService fraudDetectionService;
-
     @Mock
-    private FraudFeatureExtractor fraudFeatureExtractor;
+    private FraudRuleEngine fraudRuleEngine;
 
-    private final MeterRegistry meterRegistry = new SimpleMeterRegistry();
+    private MeterRegistry meterRegistry;
+
+    private FraudDetectionService fraudDetectionService;
 
     @BeforeEach
     void setUp() {
-        fraudDetectionService = new FraudDetectionService(
-            fraudFeatureExtractor, 
-            new ProbabilisticFraudModel(), 
-            meterRegistry
-        );
+        meterRegistry = new SimpleMeterRegistry();
+        fraudDetectionService = new FraudDetectionService(fraudRuleEngine, meterRegistry);
     }
 
     @Test
-    void testHighAmountTransaction() {
-        Transaction highAmountTransaction = Transaction.builder()
-            .amount(BigDecimal.valueOf(15000))
-            .isInternational(false)
-            .merchantCategory("ELECTRONICS")
+    void assessFraudReturnsBlockingAssessmentWhenEngineFlagsHighRisk() {
+        Transactions transaction = Transactions.builder()
+            .id(UUID.randomUUID())
+            .userId("user-risky")
+            .amount(BigDecimal.valueOf(12_500))
+            .currency("USD")
             .createdAt(Instant.parse("2025-01-01T12:00:00Z"))
-            .build();
-
-        UserRiskProfile profile = new UserRiskProfile();
-        profile.setTotalTransactions(20);
-        profile.getMerchantCategoryFrequency().put("ELECTRONICS", 5);
-
-        // when(fraudFeatureExtractor.extractFeatures(highAmountTransaction, profile))
-            // .thenReturn(Arrays.asList(1.0, 0.5, 0.2, 0.3, 0.2));
-
-        boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(highAmountTransaction, profile)
-            .block(); // Use block() to get the result
-
-        assertTrue(isPotentialFraud, "High amount transaction should be flagged as potential fraud");
-    }
-
-    @Test
-    void testInternationalTransaction() {
-        Transaction internationalTransaction = Transaction.builder()
-            .amount(BigDecimal.valueOf(5000))
             .isInternational(true)
-            .merchantCategory("TRAVEL")
-            .createdAt(Instant.parse("2025-01-01T12:00:00Z"))
+            .merchantCategory("GAMBLING")
             .build();
 
-        UserRiskProfile profile = new UserRiskProfile();
-        profile.setTotalTransactions(5);
-        profile.getMerchantCategoryFrequency().put("TRAVEL", 1);
+        ImmutableUserRiskProfile riskProfile = ImmutableUserRiskProfile.createNew("user-risky")
+            .toBuilder()
+            .totalTransactions(3)
+            .overallRiskScore(0.45)
+            .lastTransactionDate(Instant.parse("2024-12-31T20:15:00Z"))
+            .build();
 
-        boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(internationalTransaction, profile)
-            .block(); // Use block() to get the result
+        MerchantCategoryFrequency merchantFrequency = MerchantCategoryFrequency.createNew("user-risky")
+            .toBuilder()
+            .categoryFrequencies(Map.of("GAMBLING", 1))
+            .build();
 
-        assertTrue(isPotentialFraud, "International transaction with low transaction history should be flagged");
+        List<FraudRule.FraudViolation> violations = List.of(
+            new FraudRule.FraudViolation("HIGH_AMOUNT", "Amount above threshold", 0.85)
+        );
+
+        when(fraudRuleEngine.evaluateTransaction(any())).thenReturn(violations);
+        when(fraudRuleEngine.calculateFraudProbability(violations)).thenReturn(0.92);
+        when(fraudRuleEngine.determineAction(0.92)).thenReturn(FraudRuleEngine.FraudAction.BLOCK);
+
+        FraudDetectionService.FraudAssessment assessment = fraudDetectionService
+            .assessFraud(transaction, riskProfile, merchantFrequency)
+            .block();
+
+        assertNotNull(assessment);
+        assertEquals(transaction.getId(), assessment.transactionId());
+        assertEquals(0.92, assessment.fraudProbability());
+        assertTrue(assessment.shouldBlock());
+        assertTrue(assessment.getViolationSummary().contains("HIGH_AMOUNT"));
+
+        ArgumentCaptor<FraudRule.FraudEvaluationContext> contextCaptor =
+            ArgumentCaptor.forClass(FraudRule.FraudEvaluationContext.class);
+        verify(fraudRuleEngine).evaluateTransaction(contextCaptor.capture());
+
+        FraudRule.FraudEvaluationContext capturedContext = contextCaptor.getValue();
+        assertEquals(transaction, capturedContext.transaction());
+        assertEquals(riskProfile, capturedContext.profile());
+        assertEquals(merchantFrequency, capturedContext.merchantFrequency());
     }
 
     @Test
-    void testLowRiskTransaction() {
-        Transaction normalTransaction = Transaction.builder()
-            .amount(BigDecimal.valueOf(100))
+    void assessFraudReturnsApprovalWhenNoViolationsFound() {
+        Transactions transaction = Transactions.builder()
+            .id(UUID.randomUUID())
+            .userId("user-safe")
+            .amount(BigDecimal.valueOf(125))
+            .currency("USD")
+            .createdAt(Instant.parse("2025-01-02T09:30:00Z"))
             .isInternational(false)
             .merchantCategory("GROCERIES")
-            .createdAt(Instant.parse("2025-01-01T12:00:00Z"))
             .build();
 
-        UserRiskProfile profile = new UserRiskProfile();
-        profile.setTotalTransactions(50);
-        profile.getMerchantCategoryFrequency().put("GROCERIES", 20);
+        ImmutableUserRiskProfile riskProfile = ImmutableUserRiskProfile.createNew("user-safe")
+            .toBuilder()
+            .totalTransactions(120)
+            .averageTransactionAmount(110)
+            .overallRiskScore(0.12)
+            .lastTransactionDate(Instant.parse("2025-01-01T18:45:00Z"))
+            .build();
+    
 
-        boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(normalTransaction, profile)
-            .block(); // Use block() to get the result
-
-        assertFalse(isPotentialFraud, "Normal transaction should not be flagged as fraud");
-    }
-
-    @Test
-    void testHighRiskMerchantCategory() {
-        Transaction riskyCategoryTransaction = Transaction.builder()
-            .amount(BigDecimal.valueOf(500))
-            .isInternational(false)
-            .merchantCategory("GAMBLING")
-            .createdAt(Instant.parse("2025-01-01T12:00:00Z"))
+        MerchantCategoryFrequency merchantFrequency = MerchantCategoryFrequency.createNew("user-safe")
+            .toBuilder()
+            .categoryFrequencies(Map.of("GROCERIES", 18, "DINING", 12))
             .build();
 
-        UserRiskProfile profile = new UserRiskProfile();
-        profile.setTotalTransactions(10);
-        profile.getMerchantCategoryFrequency().put("GAMBLING", 1);
+        List<FraudRule.FraudViolation> violations = List.of();
 
-        boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(riskyCategoryTransaction, profile)
-            .block(); // Use block() to get the result
+        when(fraudRuleEngine.evaluateTransaction(any())).thenReturn(violations);
+        when(fraudRuleEngine.calculateFraudProbability(violations)).thenReturn(0.05);
+        when(fraudRuleEngine.determineAction(0.05)).thenReturn(FraudRuleEngine.FraudAction.APPROVE);
 
-        assertTrue(isPotentialFraud, "Gambling transaction should be flagged as potential fraud");
-    }
+        FraudDetectionService.FraudAssessment assessment = fraudDetectionService
+            .assessFraud(transaction, riskProfile, merchantFrequency)
+            .block();
 
-    @Test
-    void testUnusualTransactionTimeWithLowTransactions() {
-        Transaction lateNightTransaction = Transaction.builder()
-            .amount(BigDecimal.valueOf(300))
-            .isInternational(false)
-            .merchantCategory("ONLINE_SHOPPING")
-            .createdAt(Instant.parse("2025-01-01T02:30:00Z"))
-            .build();
-
-        UserRiskProfile profile = new UserRiskProfile();
-        profile.setTotalTransactions(10);
-        profile.getMerchantCategoryFrequency().put("ONLINE_SHOPPING", 5);
-
-        boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(lateNightTransaction, profile)
-            .block(); // Use block() to get the result
-
-        assertTrue(isPotentialFraud, "Late-night transaction should be flagged as potential fraud");
-    }
-
-    @Test
-    void testVeryLowTransactionFrequency() {
-        Transaction transaction = Transaction.builder()
-            .amount(BigDecimal.valueOf(1000))
-            .isInternational(false)
-            .merchantCategory("ELECTRONICS")
-            .createdAt(Instant.parse("2025-01-01T12:00:00Z"))
-            .build();
-
-        UserRiskProfile profile = new UserRiskProfile();
-        profile.setTotalTransactions(2);
-        profile.getMerchantCategoryFrequency().put("ELECTRONICS", 1);
-
-        // when(fraudFeatureExtractor.extractFeatures(transaction, profile))
-        //     .thenReturn(Arrays.asList(0.6, 0.7, 0.5, 0.9, 0.2));
-
-        boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(transaction, profile)
-            .block(); // Use block() to get the result
-
-        assertTrue(isPotentialFraud, "Very low transaction frequency should increase fraud risk");
-    }
-
-    @Test
-    void testMultiRiskFactorTransaction() {
-        Transaction multiRiskTransaction = Transaction.builder()
-            .amount(BigDecimal.valueOf(8000))
-            .isInternational(true)
-            .merchantCategory("CRYPTO")
-            .createdAt(Instant.parse("2025-01-01T24:00:00Z"))  // Late evening
-            .build();
-
-        UserRiskProfile profile = new UserRiskProfile();
-        profile.setTotalTransactions(15);
-        profile.getMerchantCategoryFrequency().put("CRYPTO", 2);
-
-        // when(fraudFeatureExtractor.extractFeatures(multiRiskTransaction, profile))
-        //     .thenReturn(Arrays.asList(0.8, 1.0, 1.0, 0.8, 0.7));
-
-        boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(multiRiskTransaction, profile)
-            .block(); // Use block() to get the result
-
-        assertTrue(isPotentialFraud, "Multiple high-risk factors should flag transaction as potential fraud");
-    }
-
-    @Test
-    void testBoundaryAmountTransaction() {
-        Transaction boundaryTransaction = Transaction.builder()
-            .amount(BigDecimal.valueOf(9999.99))  // Just below high-risk threshold
-            .isInternational(false)
-            .merchantCategory("ELECTRONICS")
-            .createdAt(Instant.parse("2025-01-01T12:00:00Z"))
-            .build();
-
-        UserRiskProfile profile = new UserRiskProfile();
-        profile.setTotalTransactions(40);
-        profile.getMerchantCategoryFrequency().put("ELECTRONICS", 10);
-
-        boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(boundaryTransaction, profile)
-            .block(); // Use block() to get the result
-
-        assertFalse(isPotentialFraud, "Transaction just below high-risk threshold should not be flagged");
-    }
-
-    @Test
-    void testComplexRiskProfileTransaction() {
-        Transaction complexTransaction = Transaction.builder()
-            .amount(BigDecimal.valueOf(5000))
-            .isInternational(false)
-            .merchantCategory("CRYPTO")
-            .createdAt(Instant.parse("2025-01-01T12:00:00Z"))
-            .build();
-
-        UserRiskProfile profile = new UserRiskProfile();
-        profile.setTotalTransactions(100);
-        profile.getMerchantCategoryFrequency().put("CRYPTO", 3);
-        profile.setOverallRiskScore(0.7);
-
-        // when(fraudFeatureExtractor.extractFeatures(complexTransaction, profile))
-        //     .thenReturn(Arrays.asList(0.7, 0.9, 0.3, 0.5, 0.2));
-
-        boolean isPotentialFraud = fraudDetectionService.isPotentialFraud(complexTransaction, profile)
-            .block(); // Use block() to get the result
-
-        assertTrue(isPotentialFraud, "Complex risk profile with high-risk merchant category should flag transaction");
+            assertNotNull(assessment);
+            assertEquals(transaction.getId(), assessment.transactionId());
+            assertEquals(0.05, assessment.fraudProbability());
+            assertFalse(assessment.shouldBlock());
+            assertFalse(assessment.needsReview());
+            assertEquals("", assessment.getViolationSummary());
     }
 }
