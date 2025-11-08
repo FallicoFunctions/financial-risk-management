@@ -1,5 +1,8 @@
 package com.nickfallico.financialriskmanagement.kafka.producer;
 
+import com.nickfallico.financialriskmanagement.kafka.event.FraudClearedEvent;
+import com.nickfallico.financialriskmanagement.kafka.event.FraudDetectedEvent;
+import com.nickfallico.financialriskmanagement.kafka.event.TransactionBlockedEvent;
 import com.nickfallico.financialriskmanagement.kafka.event.TransactionCreatedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +27,15 @@ public class TransactionEventProducer {
     
     @Value("${kafka.topic.transaction-created}")
     private String transactionCreatedTopic;
+
+    @Value("${kafka.topic.fraud-detected}")
+    private String fraudDetectedTopic;
+
+    @Value("${kafka.topic.fraud-cleared}")
+    private String fraudClearedTopic;
+
+    @Value("${kafka.topic.transaction-blocked}")
+    private String transactionBlockedTopic;
     
     /**
      * Publish TransactionCreatedEvent to Kafka.
@@ -45,6 +57,78 @@ public class TransactionEventProducer {
                 return null;
             }).exceptionally(ex -> {
                 log.error("Failed to publish TransactionCreatedEvent: {}", ex.getMessage(), ex);
+                return null;
+            });
+        }).then();
+    }
+
+    /**
+     * Publish FraudDetectedEvent to Kafka.
+     */
+    public Mono<Void> publishFraudDetected(FraudDetectedEvent event) {
+        return Mono.fromFuture(() -> {
+            log.info("Publishing FraudDetectedEvent: txId={}, userId={}, probability={}, rules={}", 
+                event.getTransactionId(), event.getUserId(), event.getFraudProbability(), event.getViolatedRules());
+            
+            CompletableFuture<SendResult<String, Object>> future = 
+                kafkaTemplate.send(fraudDetectedTopic, event.getUserId(), event);
+            
+            return future.thenApply(result -> {
+                log.warn("🚨 FRAUD DETECTED: Published to Kafka: topic={}, partition={}, offset={}", 
+                    result.getRecordMetadata().topic(),
+                    result.getRecordMetadata().partition(),
+                    result.getRecordMetadata().offset());
+                return null;
+            }).exceptionally(ex -> {
+                log.error("Failed to publish FraudDetectedEvent: {}", ex.getMessage(), ex);
+                return null;
+            });
+        }).then();
+    }
+
+    /**
+     * Publish FraudClearedEvent to Kafka.
+     */
+    public Mono<Void> publishFraudCleared(FraudClearedEvent event) {
+        return Mono.fromFuture(() -> {
+            log.info("Publishing FraudClearedEvent: txId={}, userId={}, probability={}", 
+                event.getTransactionId(), event.getUserId(), event.getFraudProbability());
+            
+            CompletableFuture<SendResult<String, Object>> future = 
+                kafkaTemplate.send(fraudClearedTopic, event.getUserId(), event);
+            
+            return future.thenApply(result -> {
+                log.info("✅ FRAUD CLEARED: Published to Kafka: topic={}, partition={}, offset={}", 
+                    result.getRecordMetadata().topic(),
+                    result.getRecordMetadata().partition(),
+                    result.getRecordMetadata().offset());
+                return null;
+            }).exceptionally(ex -> {
+                log.error("Failed to publish FraudClearedEvent: {}", ex.getMessage(), ex);
+                return null;
+            });
+        }).then();
+    }
+
+    /**
+     * Publish TransactionBlockedEvent to Kafka.
+     */
+    public Mono<Void> publishTransactionBlocked(TransactionBlockedEvent event) {
+        return Mono.fromFuture(() -> {
+            log.error("Publishing TransactionBlockedEvent: txId={}, userId={}, amount={}, reason={}", 
+                event.getTransactionId(), event.getUserId(), event.getAmount(), event.getBlockReason());
+            
+            CompletableFuture<SendResult<String, Object>> future = 
+                kafkaTemplate.send(transactionBlockedTopic, event.getUserId(), event);
+            
+            return future.thenApply(result -> {
+                log.error("🛑 TRANSACTION BLOCKED: Published to Kafka: topic={}, partition={}, offset={}", 
+                    result.getRecordMetadata().topic(),
+                    result.getRecordMetadata().partition(),
+                    result.getRecordMetadata().offset());
+                return null;
+            }).exceptionally(ex -> {
+                log.error("Failed to publish TransactionBlockedEvent: {}", ex.getMessage(), ex);
                 return null;
             });
         }).then();
