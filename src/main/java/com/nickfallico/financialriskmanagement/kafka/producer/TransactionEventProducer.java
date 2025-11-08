@@ -12,6 +12,7 @@ import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -59,7 +60,13 @@ public class TransactionEventProducer {
                 log.error("Failed to publish TransactionCreatedEvent: {}", ex.getMessage(), ex);
                 return null;
             });
-        }).then();
+        })
+        .timeout(Duration.ofSeconds(5))  // Don't wait more than 5 seconds
+        .onErrorResume(e -> {            // Continue even if Kafka fails
+            log.error("Kafka publish timeout/error for TransactionCreatedEvent, continuing anyway", e);
+            return Mono.empty();
+        })
+        .then();
     }
 
     /**
@@ -83,7 +90,13 @@ public class TransactionEventProducer {
                 log.error("Failed to publish FraudDetectedEvent: {}", ex.getMessage(), ex);
                 return null;
             });
-        }).then();
+        })
+        .timeout(Duration.ofSeconds(5))  // Don't wait more than 5 seconds
+        .onErrorResume(e -> {            // Continue even if Kafka fails
+            log.error("Kafka publish timeout/error for FraudDetectedEvent, continuing anyway", e);
+            return Mono.empty();
+        })
+        .then();
     }
 
     /**
@@ -107,7 +120,13 @@ public class TransactionEventProducer {
                 log.error("Failed to publish FraudClearedEvent: {}", ex.getMessage(), ex);
                 return null;
             });
-        }).then();
+        })
+        .timeout(Duration.ofSeconds(5))  // Don't wait more than 5 seconds
+        .onErrorResume(e -> {            // Continue even if Kafka fails
+            log.error("Kafka publish timeout/error for FraudClearedEvent, continuing anyway", e);
+            return Mono.empty();
+        })
+        .then();
     }
 
     /**
@@ -131,6 +150,12 @@ public class TransactionEventProducer {
                 log.error("Failed to publish TransactionBlockedEvent: {}", ex.getMessage(), ex);
                 return null;
             });
-        }).then();
+        })
+        .timeout(Duration.ofSeconds(5))  // Don't wait more than 5 seconds
+        .onErrorResume(e -> {            // Continue even if Kafka fails
+            log.error("Kafka publish timeout/error for TransactionBlockedEvent, continuing anyway", e);
+            return Mono.empty();
+        })
+        .then();
     }
 }
