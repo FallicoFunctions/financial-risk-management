@@ -5,6 +5,8 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 
 import com.nickfallico.financialriskmanagement.exception.FraudDetectionException;
+import com.nickfallico.financialriskmanagement.kafka.event.TransactionCreatedEvent;
+import com.nickfallico.financialriskmanagement.kafka.producer.TransactionEventProducer;
 import com.nickfallico.financialriskmanagement.model.Transactions;
 import com.nickfallico.financialriskmanagement.repository.TransactionRepository;
 
@@ -19,6 +21,7 @@ public class TransactionRiskWorkflow {
     private final FraudDetectionService fraudService;
     private final UserProfileService profileService;
     private final TransactionRepository txRepository;
+    private final TransactionEventProducer eventProducer;
     
     public Mono<Transactions> processTransaction(Transactions transaction) {
         // Set the ID if it's not already set
@@ -52,8 +55,13 @@ public class TransactionRiskWorkflow {
                 tx.getIsInternational(),
                 tx.getMerchantName()
             ))
-            .flatMap(savedTx -> profileService.updateProfileAfterTransaction(savedTx)
-                .thenReturn(savedTx)
-            );
+            .flatMap(savedTx -> {
+                // Publish event to Kafka
+                TransactionCreatedEvent event = TransactionCreatedEvent.fromTransaction(savedTx);
+                
+                return eventProducer.publishTransactionCreated(event)
+                    .then(profileService.updateProfileAfterTransaction(savedTx))
+                    .thenReturn(savedTx);
+            });
     }
 }
