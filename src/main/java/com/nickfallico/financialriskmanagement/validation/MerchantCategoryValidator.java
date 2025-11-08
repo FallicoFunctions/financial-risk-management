@@ -10,7 +10,7 @@ public class MerchantCategoryValidator implements ConstraintValidator<ValidMerch
     private static final List<String> VALID_CATEGORIES = Arrays.asList(
         "GROCERIES", "ELECTRONICS", "TRAVEL", "DINING", 
         "ENTERTAINMENT", "UTILITIES", "TRANSPORTATION", 
-        "GAMBLING", "CRYPTO", "ONLINE_SHOPPING"
+        "GAMBLING", "CRYPTO", "ONLINE_SHOPPING", "ADULT_ENTERTAINMENT"
     );
 
     @Override
