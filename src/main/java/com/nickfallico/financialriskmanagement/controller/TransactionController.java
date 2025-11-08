@@ -2,6 +2,7 @@ package com.nickfallico.financialriskmanagement.controller;
 
 import com.nickfallico.financialriskmanagement.dto.TransactionDTO;
 import com.nickfallico.financialriskmanagement.model.Transactions;
+import com.nickfallico.financialriskmanagement.service.TransactionRiskWorkflow;
 import com.nickfallico.financialriskmanagement.service.TransactionService;
 
 import jakarta.validation.Valid;
@@ -22,12 +23,25 @@ import java.math.BigDecimal;
 public class TransactionController {
 
     private final TransactionService transactionService;
+    private final TransactionRiskWorkflow transactionRiskWorkflow;
 
     @PostMapping
     public Mono<ResponseEntity<Transactions>> createTransaction(
         @Valid @RequestBody TransactionDTO transactionDTO
     ) {
-        return transactionService.createTransaction(transactionDTO)
+        // Build transaction from DTO
+        Transactions transaction = Transactions.builder()
+            .userId(transactionDTO.getUserId())
+            .amount(transactionDTO.getAmount())
+            .currency(transactionDTO.getCurrency())
+            .transactionType(transactionDTO.getTransactionType())
+            .merchantCategory(transactionDTO.getMerchantCategory())
+            .merchantName(transactionDTO.getMerchantName())
+            .isInternational(transactionDTO.getIsInternational())
+            .createdAt(java.time.Instant.now())
+            .build();
+        
+        return transactionRiskWorkflow.processTransaction(transaction)
             .map(ResponseEntity::ok)
             .defaultIfEmpty(ResponseEntity.badRequest().build());
     }
