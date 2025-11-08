@@ -1,5 +1,6 @@
 package com.nickfallico.financialriskmanagement.validation;
 
+import com.nickfallico.financialriskmanagement.constants.MerchantCategories;
 import com.nickfallico.financialriskmanagement.dto.TransactionDTO;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
@@ -10,16 +11,10 @@ import java.util.List;
 
 public class ComplexTransactionValidator implements ConstraintValidator<ValidTransaction, TransactionDTO> {
 
-    private static final List<String> HIGH_RISK_CATEGORIES = Arrays.asList(
-        "GAMBLING", "CRYPTO", "ADULT_ENTERTAINMENT"
-    );
+    private static final List<String> HIGH_RISK_CATEGORIES = MerchantCategories.HIGH_RISK_CATEGORIES;
 
     // mirror the allowed list used by @ValidMerchantCategory (keep in sync)
-    private static final List<String> VALID_CATEGORIES = Arrays.asList(
-        "GROCERIES", "ELECTRONICS", "TRAVEL", "DINING",
-        "ENTERTAINMENT", "UTILITIES", "TRANSPORTATION",
-        "GAMBLING", "CRYPTO", "ONLINE_SHOPPING", "ADULT_ENTERTAINMENT"
-    );
+    private static final List<String> VALID_CATEGORIES = MerchantCategories.VALID_CATEGORIES;
 
     private static final BigDecimal BASIC_MIN = new BigDecimal("0.01");
     private static final BigDecimal BASIC_MAX = new BigDecimal("1000000");
