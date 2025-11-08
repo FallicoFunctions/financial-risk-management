@@ -23,7 +23,7 @@ public class FraudEventConsumer {
     @KafkaListener(
         topics = "${kafka.topic.fraud-detected}",
         groupId = "${spring.kafka.consumer.group-id}",
-        containerFactory = "kafkaListenerContainerFactory"
+        containerFactory = "fraudDetectedKafkaListenerContainerFactory"
     )
     public void handleFraudDetected(FraudDetectedEvent event) {
         log.error("========================================");
@@ -53,7 +53,7 @@ public class FraudEventConsumer {
     @KafkaListener(
         topics = "${kafka.topic.fraud-cleared}",
         groupId = "${spring.kafka.consumer.group-id}",
-        containerFactory = "kafkaListenerContainerFactory"
+        containerFactory = "fraudClearedKafkaListenerContainerFactory"
     )
     public void handleFraudCleared(FraudClearedEvent event) {
         log.info("========================================");
@@ -79,7 +79,7 @@ public class FraudEventConsumer {
     @KafkaListener(
         topics = "${kafka.topic.transaction-blocked}",
         groupId = "${spring.kafka.consumer.group-id}",
-        containerFactory = "kafkaListenerContainerFactory"
+        containerFactory = "transactionBlockedKafkaListenerContainerFactory"
     )
     public void handleTransactionBlocked(TransactionBlockedEvent event) {
         log.error("========================================");
