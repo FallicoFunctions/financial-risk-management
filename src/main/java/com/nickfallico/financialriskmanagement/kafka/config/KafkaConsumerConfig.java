@@ -27,7 +27,7 @@ public class KafkaConsumerConfig {
 
     /**
      * Base consumer configuration shared by all factories.
-     * Ensures consistent Kafka settings across all consumers.
+     * Only includes Kafka connection and consumer settings - NO deserializer config.
      */
     private Map<String, Object> baseConsumerConfigs() {
         Map<String, Object> props = new HashMap<>();
@@ -36,8 +36,6 @@ public class KafkaConsumerConfig {
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-        props.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
-        props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
         return props;
     }
 
@@ -47,15 +45,13 @@ public class KafkaConsumerConfig {
      */
     @Bean
     public ConsumerFactory<String, TransactionCreatedEvent> consumerFactory() {
-        Map<String, Object> config = baseConsumerConfigs();
-        
         JsonDeserializer<TransactionCreatedEvent> deserializer = 
             new JsonDeserializer<>(TransactionCreatedEvent.class);
         deserializer.addTrustedPackages("*");
         deserializer.setUseTypeHeaders(false);
         
         return new DefaultKafkaConsumerFactory<>(
-            config,
+            baseConsumerConfigs(),
             new StringDeserializer(),
             deserializer
         );
