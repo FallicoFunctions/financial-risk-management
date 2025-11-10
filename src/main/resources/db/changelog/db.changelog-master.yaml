@@ -8,3 +8,6 @@ databaseChangeLog:
   - include:
       file: 2025-11-05-separate-merchant-frequency.yaml
       relativeToChangelogFile: true
+  - include:
+      file: 2025-11-10-create-event-log-table.yaml
+      relativeToChangelogFile: true

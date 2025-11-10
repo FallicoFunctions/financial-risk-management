@@ -1,0 +1,91 @@
+databaseChangeLog:
+  - changeSet:
+      id: 2025-11-10-create-event-log-table
+      author: nick
+      changes:
+        - createTable:
+            tableName: event_log
+            columns:
+              - column:
+                  name: event_id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: event_type
+                  type: varchar(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: aggregate_id
+                  type: varchar(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: aggregate_type
+                  type: varchar(50)
+                  constraints:
+                    nullable: false
+                  remarks: "USER, TRANSACTION, PROFILE"
+              - column:
+                  name: event_data
+                  type: jsonb
+                  constraints:
+                    nullable: false
+                  remarks: "Full event payload as JSON"
+              - column:
+                  name: metadata
+                  type: jsonb
+                  remarks: "Kafka metadata (topic, partition, offset)"
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+                  defaultValueComputed: CURRENT_TIMESTAMP
+              - column:
+                  name: sequence_number
+                  type: bigint
+                  constraints:
+                    nullable: false
+                  remarks: "Auto-incrementing sequence for ordering"
+              - column:
+                  name: version
+                  type: integer
+                  constraints:
+                    nullable: false
+                  defaultValueNumeric: 1
+                  remarks: "Event schema version"
+        
+        # Indexes for performance
+        - createIndex:
+            tableName: event_log
+            indexName: idx_event_aggregate
+            columns:
+              - column:
+                  name: aggregate_id
+              - column:
+                  name: aggregate_type
+              - column:
+                  name: sequence_number
+        
+        - createIndex:
+            tableName: event_log
+            indexName: idx_event_type
+            columns:
+              - column:
+                  name: event_type
+        
+        - createIndex:
+            tableName: event_log
+            indexName: idx_event_created
+            columns:
+              - column:
+                  name: created_at
+        
+        # Sequence for auto-incrementing sequence_number
+        - createSequence:
+            sequenceName: event_log_sequence
+            startValue: 1
+            incrementBy: 1
