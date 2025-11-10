@@ -39,5 +39,14 @@ public class TransactionEventConsumer {
         // TODO: Add async fraud detection here in next phase
         // TODO: Add analytics processing here
         // TODO: Add notification sending here
+
+        // Store event in event log
+        eventStoreService.storeEvent(
+            EventType.TRANSACTION_CREATED,
+            event.getUserId(),
+            "USER",
+            event,
+            EventStoreService.createKafkaMetadata(topic, partition, offset)
+        ).subscribe();
     }
 }
