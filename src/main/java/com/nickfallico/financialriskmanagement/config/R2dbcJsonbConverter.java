@@ -19,9 +19,9 @@ public class R2dbcJsonbConverter {
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     @WritingConverter
-    public static class MapToJsonConverter implements Converter<Map<String, Integer>, Json> {
+    public static class MapToJsonConverter implements Converter<Map<String, Object>, Json> {
         @Override
-        public Json convert(Map<String, Integer> source) {
+        public Json convert(Map<String, Object> source) {
             try {
                 return Json.of(objectMapper.writeValueAsString(source));
             } catch (JsonProcessingException e) {
@@ -31,10 +31,10 @@ public class R2dbcJsonbConverter {
     }
 
     @ReadingConverter
-    public static class JsonToMapConverter implements Converter<Json, Map<String, Integer>> {
+    public static class JsonToMapConverter implements Converter<Json, Map<String, Object>> {
         @Override
         @SuppressWarnings("unchecked")
-        public Map<String, Integer> convert(Json source) {
+        public Map<String, Object> convert(Json source) {
             try {
                 return objectMapper.readValue(source.asString(), Map.class);
             } catch (IOException e) {
