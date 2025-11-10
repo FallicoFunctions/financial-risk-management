@@ -136,6 +136,11 @@ public class TransactionEventProducer {
         return Mono.fromFuture(() -> {
             log.error("Publishing TransactionBlockedEvent: txId={}, userId={}, amount={}, reason={}", 
                 event.getTransactionId(), event.getUserId(), event.getAmount(), event.getBlockReason());
+
+            // DEBUG: Log the exact topic name being used
+            log.error("DEBUG: About to publish to topic: [{}]", transactionBlockedTopic);
+            log.error("DEBUG: Topic name length: {}", transactionBlockedTopic.length());
+            log.error("DEBUG: Topic bytes: {}", java.util.Arrays.toString(transactionBlockedTopic.getBytes()));
             
             CompletableFuture<SendResult<String, Object>> future = 
                 kafkaTemplate.send(transactionBlockedTopic, event.getUserId(), event);

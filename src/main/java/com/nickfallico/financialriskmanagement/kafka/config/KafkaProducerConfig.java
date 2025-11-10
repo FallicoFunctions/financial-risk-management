@@ -28,6 +28,16 @@ public class KafkaProducerConfig {
         config.put(ProducerConfig.ACKS_CONFIG, "all");
         config.put(ProducerConfig.RETRIES_CONFIG, 3);
         config.put(ProducerConfig.LINGER_MS_CONFIG, 1);
+
+        // Increase timeouts to handle metadata sync issues
+        config.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, 10000);  // Wait up to 10s for metadata
+        config.put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, 30000);  // 30s request timeout
+        config.put(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, 120000);  // 2 min delivery timeout
+        config.put("metadata.max.age.ms", "5000");
+
+        // Force connection reset
+        config.put(ProducerConfig.CONNECTIONS_MAX_IDLE_MS_CONFIG, 10000);
+
         return new DefaultKafkaProducerFactory<>(config);
     }
     
