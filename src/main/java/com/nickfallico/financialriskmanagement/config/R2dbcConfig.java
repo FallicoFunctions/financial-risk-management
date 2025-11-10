@@ -11,7 +11,10 @@ import org.springframework.data.r2dbc.repository.config.EnableR2dbcRepositories;
 import io.r2dbc.spi.ConnectionFactory;
 
 @Configuration
-@EnableR2dbcRepositories(basePackages = "com.nickfallico.financialriskmanagement.repository")
+@EnableR2dbcRepositories(basePackages = {
+    "com.nickfallico.financialriskmanagement.repository",
+    "com.nickfallico.financialriskmanagement.eventstore.repository"
+})
 public class R2dbcConfig extends AbstractR2dbcConfiguration {
     @Value("${spring.r2dbc.url}")
     private String url;
