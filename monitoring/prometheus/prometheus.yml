@@ -1,0 +1,48 @@
+# Prometheus configuration for Financial Risk Management Platform
+global:
+  scrape_interval: 15s      # Scrape metrics every 15 seconds
+  evaluation_interval: 15s   # Evaluate rules every 15 seconds
+  external_labels:
+    cluster: 'financial-risk-management'
+    environment: 'development'
+
+# Alerting configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+          # TODO: Add Alertmanager endpoint in production
+          # - targets: ['alertmanager:9093']
+
+# Load alerting rules
+rule_files:
+  - 'alerts.yml'
+
+# Scrape configurations
+scrape_configs:
+  # Spring Boot application metrics (Micrometer + Actuator)
+  - job_name: 'spring-boot-app'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:8080']
+        labels:
+          application: 'financial-risk-management'
+          service: 'fraud-detection'
+    scrape_interval: 10s
+
+  # Kafka metrics from Kafka Exporter
+  - job_name: 'kafka'
+    static_configs:
+      - targets: ['kafka-exporter:9308']
+        labels:
+          application: 'financial-risk-management'
+          service: 'kafka'
+    scrape_interval: 15s
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          application: 'financial-risk-management'
+          service: 'prometheus'

@@ -1,0 +1,121 @@
+# Prometheus alerting rules for Financial Risk Management Platform
+groups:
+  # Kafka Consumer Lag Alerts
+  - name: kafka_consumer_lag
+    interval: 30s
+    rules:
+      - alert: HighKafkaConsumerLag
+        expr: kafka_consumergroup_lag > 1000
+        for: 5m
+        labels:
+          severity: warning
+          component: kafka
+        annotations:
+          summary: "High Kafka consumer lag detected"
+          description: "Consumer group {{ $labels.consumergroup }} has lag of {{ $value }} messages on topic {{ $labels.topic }}"
+
+      - alert: CriticalKafkaConsumerLag
+        expr: kafka_consumergroup_lag > 10000
+        for: 2m
+        labels:
+          severity: critical
+          component: kafka
+        annotations:
+          summary: "CRITICAL: Kafka consumer lag is very high"
+          description: "Consumer group {{ $labels.consumergroup }} has critical lag of {{ $value }} messages. Events are not being processed!"
+
+  # Fraud Detection Alerts
+  - name: fraud_detection
+    interval: 30s
+    rules:
+      - alert: HighFraudDetectionRate
+        expr: rate(events_stored_total{event_type="FRAUD_DETECTED"}[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          component: fraud-detection
+        annotations:
+          summary: "High fraud detection rate"
+          description: "Fraud detection rate is {{ $value }} events/sec over the last 5 minutes"
+
+      - alert: EventStoreFailures
+        expr: rate(event_store_errors_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+          component: event-store
+        annotations:
+          summary: "Event store is failing to write events"
+          description: "Event store error rate is {{ $value }} errors/sec. Critical for compliance!"
+
+  # Application Health Alerts
+  - name: application_health
+    interval: 30s
+    rules:
+      - alert: ApplicationDown
+        expr: up{job="spring-boot-app"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: application
+        annotations:
+          summary: "Application is down"
+          description: "Spring Boot application has been unreachable for 1 minute"
+
+      - alert: HighErrorRate
+        expr: rate(http_server_requests_seconds_count{status=~"5.."}[5m]) > 0.05
+        for: 3m
+        labels:
+          severity: warning
+          component: application
+        annotations:
+          summary: "High HTTP 5xx error rate"
+          description: "HTTP 5xx error rate is {{ $value }} errors/sec"
+
+      - alert: SlowResponseTime
+        expr: histogram_quantile(0.95, rate(http_server_requests_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+          component: application
+        annotations:
+          summary: "Slow API response times"
+          description: "95th percentile response time is {{ $value }}s (threshold: 2s)"
+
+  # Database Alerts
+  - name: database
+    interval: 30s
+    rules:
+      - alert: HighDatabaseConnections
+        expr: hikaricp_connections_active > 20
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "High number of active database connections"
+          description: "Active connections: {{ $value }} (consider scaling or investigating connection leaks)"
+
+  # Event Replay Alerts
+  - name: event_replay
+    interval: 30s
+    rules:
+      - alert: EventReplayFailures
+        expr: rate(event_replay_errors_total[10m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          component: event-replay
+        annotations:
+          summary: "Event replay failures detected"
+          description: "Event replay is failing with {{ $value }} errors/sec"
+
+      - alert: SlowEventReplay
+        expr: event_replay_duration_seconds > 60
+        for: 1m
+        labels:
+          severity: warning
+          component: event-replay
+        annotations:
+          summary: "Event replay is taking too long"
+          description: "Event replay duration is {{ $value }}s (threshold: 60s)"
