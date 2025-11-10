@@ -18,6 +18,19 @@ import java.util.UUID;
 public interface EventLogRepository extends R2dbcRepository<EventLog, UUID> {
     
     /**
+     * Custom insert method to avoid update issues.
+     * Explicitly inserts with sequence number from sequence.
+     */
+    @Query("""
+        INSERT INTO event_log 
+        (event_id, event_type, aggregate_id, aggregate_type, event_data, metadata, created_at, sequence_number, version)
+        VALUES (:#{#event.eventId}, :#{#event.eventType}, :#{#event.aggregateId}, :#{#event.aggregateType}, 
+                :#{#event.eventData}::jsonb, :#{#event.metadata}::jsonb, :#{#event.createdAt}, :#{#event.sequenceNumber}, :#{#event.version})
+        RETURNING *
+    """)
+    Mono<EventLog> insertEvent(EventLog event);
+    
+    /**
      * Get all events for a specific aggregate (user or transaction)
      * Ordered by sequence number for replay.
      */

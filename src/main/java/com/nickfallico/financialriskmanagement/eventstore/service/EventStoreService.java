@@ -70,7 +70,7 @@ public class EventStoreService {
                     .version(1)
                     .build();
                 
-                return eventLogRepository.save(eventLog);
+                return eventLogRepository.insertEvent(eventLog);
             })
             .doOnSuccess(savedEvent -> {
                 sample.stop(meterRegistry.timer("event_store_write_time", 
