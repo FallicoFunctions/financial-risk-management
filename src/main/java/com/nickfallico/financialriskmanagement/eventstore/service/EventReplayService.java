@@ -64,7 +64,7 @@ public class EventReplayService {
                 return userProfileProjection.buildProfileFromEvents(userId, Flux.fromIterable(events))
                     .flatMap(profile -> {
                         // Save rebuilt profile
-                        return userRiskProfileRepository.save(profile);
+                        return userRiskProfileRepository.upsert(profile).thenReturn(profile);
                     });
             })
             .doOnSuccess(profile -> {
@@ -154,7 +154,7 @@ public class EventReplayService {
                             userId,
                             Flux.fromIterable(events)
                         )
-                        .flatMap(userRiskProfileRepository::save)
+                        .flatMap(profile -> userRiskProfileRepository.upsert(profile).thenReturn(profile))
                         .doOnSuccess(profile -> {
                             stats.incrementUsersRebuilt();
 
@@ -229,7 +229,7 @@ public class EventReplayService {
                                     Flux.fromIterable(events)
                                 );
                             })
-                            .flatMap(userRiskProfileRepository::save)
+                            .flatMap(profile -> userRiskProfileRepository.upsert(profile).thenReturn(profile))
                             .doOnSuccess(profile -> stats.incrementUsersRebuilt());
                     });
             }, batchSize)
