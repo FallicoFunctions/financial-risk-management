@@ -1,12 +1,12 @@
 package com.nickfallico.financialriskmanagement.validation;
 
-import jakarta.validation.ConstraintValidator;
-import jakarta.validation.ConstraintValidatorContext;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
 import com.nickfallico.financialriskmanagement.constants.MerchantCategories;
+
+import jakarta.validation.ConstraintValidator;
+import jakarta.validation.ConstraintValidatorContext;
 
 public class MerchantCategoryValidator implements ConstraintValidator<ValidMerchantCategory, String> {
     private static final List<String> VALID_CATEGORIES = MerchantCategories.VALID_CATEGORIES;

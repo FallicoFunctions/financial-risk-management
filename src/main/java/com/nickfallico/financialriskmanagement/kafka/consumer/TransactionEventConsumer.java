@@ -1,17 +1,17 @@
 package com.nickfallico.financialriskmanagement.kafka.consumer;
 
-import com.nickfallico.financialriskmanagement.eventstore.model.EventType;
-import com.nickfallico.financialriskmanagement.eventstore.service.EventStoreService;
-import com.nickfallico.financialriskmanagement.kafka.event.TransactionCreatedEvent;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
+
+import com.nickfallico.financialriskmanagement.eventstore.model.EventType;
+import com.nickfallico.financialriskmanagement.eventstore.service.EventStoreService;
+import com.nickfallico.financialriskmanagement.kafka.event.TransactionCreatedEvent;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Kafka consumer that listens for transaction events.

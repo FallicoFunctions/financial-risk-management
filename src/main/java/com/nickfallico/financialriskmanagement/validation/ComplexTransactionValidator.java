@@ -1,13 +1,13 @@
 package com.nickfallico.financialriskmanagement.validation;
 
+import java.math.BigDecimal;
+import java.util.List;
+
 import com.nickfallico.financialriskmanagement.constants.MerchantCategories;
 import com.nickfallico.financialriskmanagement.dto.TransactionDTO;
+
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
-
-import java.math.BigDecimal;
-import java.util.Arrays;
-import java.util.List;
 
 public class ComplexTransactionValidator implements ConstraintValidator<ValidTransaction, TransactionDTO> {
 
