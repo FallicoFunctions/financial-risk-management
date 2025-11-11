@@ -39,4 +39,16 @@ public enum EventType {
         }
         throw new IllegalArgumentException("Unknown topic: " + topicName);
     }
+
+    /**
+     * Parse event type from its string name (e.g., "TRANSACTION_CREATED").
+     * Used when reading events from the event store.
+     */
+    public static EventType fromEventTypeName(String eventTypeName) {
+        try {
+            return EventType.valueOf(eventTypeName);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Unknown event type: " + eventTypeName);
+        }
+    }
 }

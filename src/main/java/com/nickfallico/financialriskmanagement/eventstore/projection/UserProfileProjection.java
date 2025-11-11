@@ -93,7 +93,7 @@ public class UserProfileProjection {
         ImmutableUserRiskProfile currentProfile,
         EventLog event
     ) {
-        EventType eventType = EventType.fromTopicName(event.getEventType());
+        EventType eventType = EventType.fromEventTypeName(event.getEventType());
         Map<String, Object> eventData = event.getEventData();
 
         return switch (eventType) {
