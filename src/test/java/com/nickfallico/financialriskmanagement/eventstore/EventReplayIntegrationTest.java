@@ -261,20 +261,23 @@ class EventReplayIntegrationTest {
     /**
      * Helper method to create test events for a user.
      * Uses the correct EventStoreService API.
+     * Uses the correct EventStoreService API.
      */
-    private void createTestEventsForUser(String userId) {
-        // Create event data
+     private void createTestEventsForUser(String userId) {
+        // Create event data with all required fields
         Map<String, Object> eventData = new HashMap<>();
         eventData.put("transactionId", "txn-" + userId);
         eventData.put("amount", 100.00);
         eventData.put("merchantId", "merchant-123");
         eventData.put("userId", userId);
-
+        eventData.put("isInternational", false);
+        eventData.put("riskScore", 0.3);
+ 
         // Create metadata
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("source", "test");
         metadata.put("test_run", true);
-
+ 
         // Store event using the correct API signature
         eventStoreService.storeEvent(
             EventType.TRANSACTION_CREATED,

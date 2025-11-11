@@ -49,23 +49,28 @@ public class UserProfileProjection {
     public Mono<ImmutableUserRiskProfile> buildProfileFromEvents(String userId, Flux<EventLog> events) {
         log.debug("Building profile for user {} from event stream", userId);
 
-        // Start with empty profile
-        AtomicReference<ImmutableUserRiskProfile> profile =
-            new AtomicReference<>(ImmutableUserRiskProfile.createNew(userId));
-
-        AtomicInteger eventCount = new AtomicInteger(0);
-
-        return events
-            .sort((e1, e2) -> Long.compare(e1.getSequenceNumber(), e2.getSequenceNumber()))
-            .doOnNext(event -> {
-                log.trace("Applying event {}: {}", eventCount.incrementAndGet(), event.getEventType());
-            })
-            .reduce(profile.get(), (currentProfile, event) -> {
-                return applyEventToProfile(currentProfile, event);
-            })
-            .doOnSuccess(finalProfile -> {
-                log.debug("Built profile for user {} from {} events",
-                    userId, eventCount.get());
+                // Collect events first to check if there are any
+                return events
+                .collectList()
+                .flatMap(eventList -> {
+                    // Return empty if no events
+                    if (eventList.isEmpty()) {
+                        log.debug("No events found for user {}, returning empty", userId);
+                        return Mono.empty();
+                    }
+     
+                    // Start with empty profile
+                    ImmutableUserRiskProfile initialProfile = ImmutableUserRiskProfile.createNew(userId);
+     
+                    log.debug("Building profile for user {} from {} events", userId, eventList.size());
+     
+                    // Apply events in order
+                    return Flux.fromIterable(eventList)
+                        .sort((e1, e2) -> Long.compare(e1.getSequenceNumber(), e2.getSequenceNumber()))
+                        .reduce(initialProfile, this::applyEventToProfile)
+                        .doOnSuccess(finalProfile -> {
+                            log.debug("Built profile for user {} from {} events", userId, eventList.size());
+                        });
             });
     }
 
