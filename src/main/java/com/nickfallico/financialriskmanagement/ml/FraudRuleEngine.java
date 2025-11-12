@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class FraudRuleEngine {
     
+    // ========== Basic Rules ==========
     private final HighAmountRule highAmountRule;
     private final HighRiskMerchantCategoryRule highRiskCategoryRule;
     private final InternationalWithLowHistoryRule internationalRule;
@@ -25,22 +26,38 @@ public class FraudRuleEngine {
     private final UnusualDeviationFromAverageRule deviationRule;
     private final UnusedMerchantCategoryRule unusedCategoryRule;
     
+    // ========== Advanced Fraud Detection Rules ==========
+    private final VelocityRule velocityRule;
+    private final GeographicAnomalyRule geographicAnomalyRule;
+    private final ImpossibleTravelRule impossibleTravelRule;
+    private final AmountSpikeRule amountSpikeRule;
+    
     /**
      * Evaluate transaction against all fraud rules.
      * Returns all violations found (can be multiple per transaction).
      * Uses functional stream composition; no mutable state.
+     * 
+     * - 7 basic rules (amount, merchant, international, hours, user age, deviation, category)
+     * - 4 advanced rules (velocity, geography, impossible travel, amount spike)
      */
     public List<FraudRule.FraudViolation> evaluateTransaction(
         FraudRule.FraudEvaluationContext context) {
         
         return List.of(
+            // Basic rules
             highAmountRule,
             highRiskCategoryRule,
             internationalRule,
             oddHourRule,
             newUserRule,
             deviationRule,
-            unusedCategoryRule
+            unusedCategoryRule,
+            
+            // Advanced fraud detection rules
+            velocityRule,
+            geographicAnomalyRule,
+            impossibleTravelRule,
+            amountSpikeRule
         )
         .stream()
         .flatMap(rule -> rule.evaluate(context).stream())
