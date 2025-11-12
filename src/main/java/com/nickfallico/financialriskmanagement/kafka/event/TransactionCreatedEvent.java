@@ -30,6 +30,13 @@ public class TransactionCreatedEvent {
     private String merchantName;
     private Boolean isInternational;
     
+    // ========== Geographic Location Fields ==========
+    private Double latitude;
+    private Double longitude;
+    private String country;      // ISO 3166-1 alpha-2 code (e.g., "US", "GB")
+    private String city;
+    private String ipAddress;
+    
     // Event metadata
     private Instant eventTimestamp;
     private String eventId;
@@ -53,6 +60,12 @@ public class TransactionCreatedEvent {
             .merchantCategory(transaction.getMerchantCategory())
             .merchantName(transaction.getMerchantName())
             .isInternational(transaction.getIsInternational())
+            // Copy geographic location data
+            .latitude(transaction.getLatitude())
+            .longitude(transaction.getLongitude())
+            .country(transaction.getCountry())
+            .city(transaction.getCity())
+            .ipAddress(transaction.getIpAddress())
             .eventTimestamp(Instant.now())
             .eventId(UUID.randomUUID().toString())
             .eventSource("transaction-service")
