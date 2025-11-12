@@ -1,21 +1,26 @@
 package com.nickfallico.financialriskmanagement.config;
-
+ 
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
-
-@Configuration
+ 
+/**
+ * Test-specific security configuration.
+ * Ensures all endpoints including actuator are accessible during testing.
+ */
+@TestConfiguration
 @EnableWebSecurity
-public class SecurityConfig {
+public class TestSecurityConfig {
+ 
     @Bean
-
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain testSecurityFilterChain(HttpSecurity http) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/actuator/**").permitAll()  // Explicitly permit actuator endpoints
+                .requestMatchers("/actuator/**").permitAll()
+                .requestMatchers("/api/**").permitAll()
                 .anyRequest().permitAll()
             );
         return http.build();

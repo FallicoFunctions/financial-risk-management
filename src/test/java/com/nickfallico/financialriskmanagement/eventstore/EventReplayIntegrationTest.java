@@ -1,6 +1,7 @@
 package com.nickfallico.financialriskmanagement.eventstore;
 
 import com.nickfallico.financialriskmanagement.config.TestR2dbcConfig;
+import com.nickfallico.financialriskmanagement.config.TestSecurityConfig;
 import com.nickfallico.financialriskmanagement.eventstore.model.EventType;
 import com.nickfallico.financialriskmanagement.eventstore.service.EventStoreService;
 import com.nickfallico.financialriskmanagement.model.ImmutableUserRiskProfile;
@@ -35,7 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureWebTestClient
-@Import(TestR2dbcConfig.class)
+@Import({TestR2dbcConfig.class, TestSecurityConfig.class})
 @ActiveProfiles("test")
 class EventReplayIntegrationTest {
 
