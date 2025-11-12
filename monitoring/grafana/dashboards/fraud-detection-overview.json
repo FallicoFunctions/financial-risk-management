@@ -1,9 +1,9 @@
 {
   "title": "Fraud Detection - Overview",
-  "tags": ["fraud-detection", "event-sourcing", "kafka"],
+  "tags": ["fraud-detection", "event-sourcing", "kafka", "advanced-fraud"],
   "timezone": "browser",
   "schemaVersion": 16,
-  "version": 1,
+  "version": 2,
   "refresh": "10s",
   "time": {
     "from": "now-1h",
@@ -255,6 +255,162 @@
         {"format": "bytes", "label": "Memory"},
         {"format": "short"}
       ]
+    },
+    {
+      "id": 11,
+      "title": "Advanced Fraud Rule Violations (Total)",
+      "type": "graph",
+      "gridPos": {"h": 6, "w": 12, "x": 0, "y": 24},
+      "targets": [
+        {
+          "expr": "rate(fraud_violations_total{action=\"BLOCK\"}[1m])",
+          "refId": "A",
+          "legendFormat": "Blocked"
+        },
+        {
+          "expr": "rate(fraud_violations_total{action=\"REVIEW\"}[1m])",
+          "refId": "B",
+          "legendFormat": "Review Required"
+        },
+        {
+          "expr": "rate(fraud_violations_total{action=\"MONITOR\"}[1m])",
+          "refId": "C",
+          "legendFormat": "Monitor"
+        }
+      ],
+      "yaxes": [
+        {"format": "ops", "label": "Violations/sec"},
+        {"format": "short"}
+      ]
+    },
+    {
+      "id": 12,
+      "title": "Fraud Rule Breakdown",
+      "type": "graph",
+      "gridPos": {"h": 6, "w": 12, "x": 12, "y": 24},
+      "targets": [
+        {
+          "expr": "sum by (rule_id) (rate(fraud_violations_total[5m]))",
+          "refId": "A",
+          "legendFormat": "{{rule_id}}"
+        }
+      ],
+      "yaxes": [
+        {"format": "ops", "label": "Violations/sec by Rule"},
+        {"format": "short"}
+      ]
+    },
+    {
+      "id": 13,
+      "title": "Velocity Violations",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 30},
+      "targets": [{
+        "expr": "sum(fraud_violations_total{rule_id=~\"VELOCITY.*\"})",
+        "refId": "A"
+      }],
+      "options": {
+        "graphMode": "area",
+        "colorMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"value": null, "color": "green"},
+              {"value": 10, "color": "yellow"},
+              {"value": 50, "color": "red"}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 14,
+      "title": "Geographic Anomalies",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 30},
+      "targets": [{
+        "expr": "sum(fraud_violations_total{rule_id=~\"GEOGRAPHIC.*\"})",
+        "refId": "A"
+      }],
+      "options": {
+        "graphMode": "area",
+        "colorMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"value": null, "color": "green"},
+              {"value": 5, "color": "yellow"},
+              {"value": 25, "color": "red"}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 15,
+      "title": "Impossible Travel Incidents",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 30},
+      "targets": [{
+        "expr": "sum(fraud_violations_total{rule_id=\"IMPOSSIBLE_TRAVEL\"})",
+        "refId": "A"
+      }],
+      "options": {
+        "graphMode": "area",
+        "colorMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"value": null, "color": "green"},
+              {"value": 1, "color": "yellow"},
+              {"value": 10, "color": "red"}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 16,
+      "title": "Amount Spike Detections",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 30},
+      "targets": [{
+        "expr": "sum(fraud_violations_total{rule_id=~\"AMOUNT.*SPIKE\"})",
+        "refId": "A"
+      }],
+      "options": {
+        "graphMode": "area",
+        "colorMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"value": null, "color": "green"},
+              {"value": 5, "color": "yellow"},
+              {"value": 20, "color": "red"}
+            ]
+          }
+        }
+      }
     }
   ]
 }
