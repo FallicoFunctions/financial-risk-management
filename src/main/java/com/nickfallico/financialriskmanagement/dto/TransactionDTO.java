@@ -12,7 +12,7 @@ import com.nickfallico.financialriskmanagement.validation.ValidMerchantCategory;
 
 @Data
 @Builder
-// @ValidTransaction  // ⬅️ Remove/disable for these tests to avoid extra violations
+// @ValidTransaction  // Remove/disable for these tests to avoid extra violations
 public class TransactionDTO {
     private UUID id;
 
@@ -37,9 +37,22 @@ public class TransactionDTO {
     @ValidMerchantCategory(message = "Merchant category is not supported")
     private String merchantCategory;
 
-    // Keep simple; null allowed; won’t trip tests
+    // Keep simple; null allowed; won't trip tests
     @Size(max = 255, message = "Merchant name must be <= 255 chars")
     private String merchantName;
 
     private Boolean isInternational;
+
+    // ========== Geographic Location Fields ==========
+    private Double latitude;
+    private Double longitude;
+    
+    @Size(max = 2, message = "Country code must be 2 characters")
+    private String country;
+    
+    @Size(max = 100, message = "City name must be <= 100 characters")
+    private String city;
+    
+    @Size(max = 45, message = "IP address must be <= 45 characters")
+    private String ipAddress;
 }
