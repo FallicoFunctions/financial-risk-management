@@ -38,6 +38,12 @@ public class TransactionController {
             .merchantCategory(transactionDTO.getMerchantCategory())
             .merchantName(transactionDTO.getMerchantName())
             .isInternational(transactionDTO.getIsInternational())
+            // Map geographic location fields
+            .latitude(transactionDTO.getLatitude())
+            .longitude(transactionDTO.getLongitude())
+            .country(transactionDTO.getCountry())
+            .city(transactionDTO.getCity())
+            .ipAddress(transactionDTO.getIpAddress())
             .createdAt(java.time.Instant.now())
             .build();
         
