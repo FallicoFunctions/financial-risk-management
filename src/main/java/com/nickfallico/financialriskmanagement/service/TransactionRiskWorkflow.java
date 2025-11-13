@@ -41,14 +41,19 @@ public class TransactionRiskWorkflow {
         // STEP 1: Save transaction immediately (fast response to user)
         return txRepository.saveTransaction(
             transaction.getId(),
-            transaction.getUserId(), 
-            transaction.getAmount(), 
-            transaction.getCurrency(), 
-            transaction.getCreatedAt(), 
-            transaction.getTransactionType(), 
-            transaction.getMerchantCategory(), 
+            transaction.getUserId(),
+            transaction.getAmount(),
+            transaction.getCurrency(),
+            transaction.getCreatedAt(),
+            transaction.getTransactionType(),
+            transaction.getMerchantCategory(),
             transaction.getIsInternational(),
-            transaction.getMerchantName()
+            transaction.getMerchantName(),
+            transaction.getLatitude(),
+            transaction.getLongitude(),
+            transaction.getCountry(),
+            transaction.getCity(),
+            transaction.getIpAddress()
         )
         .flatMap(savedTx -> {
             // STEP 2: Publish TransactionCreated event
