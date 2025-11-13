@@ -1,18 +1,23 @@
 package com.nickfallico.financialriskmanagement.model;
 
-import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.relational.core.mapping.Table;
-
 import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Table;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /**
  * Immutable aggregate for tracking merchant category frequencies per user.
@@ -26,6 +31,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder(toBuilder = true)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class MerchantCategoryFrequency {
     
     @jakarta.persistence.Id
@@ -77,6 +83,7 @@ public class MerchantCategoryFrequency {
     /**
      * Get count of unique categories used
      */
+    @JsonIgnore
     public int getUniqueCategoryCount() {
         return categoryFrequencies.size();
     }
@@ -91,6 +98,7 @@ public class MerchantCategoryFrequency {
     /**
      * Get immutable view of frequencies
      */
+    @JsonIgnore
     public Map<String, Integer> getFrequenciesImmutable() {
         return Collections.unmodifiableMap(categoryFrequencies);
     }

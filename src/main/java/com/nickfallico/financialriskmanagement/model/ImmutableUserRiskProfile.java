@@ -5,6 +5,7 @@ import java.time.Instant;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import jakarta.persistence.Entity;
@@ -25,7 +26,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder(toBuilder = true)
-@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonIgnoreProperties(ignoreUnknown = true) 
 public class ImmutableUserRiskProfile {
     
     @jakarta.persistence.Id
@@ -91,6 +92,7 @@ public class ImmutableUserRiskProfile {
     /**
      * Check if this is a new user (zero or very few transactions)
      */
+    @JsonIgnore
     public boolean isNewUser() {
         return this.totalTransactions <= 2;
     }
@@ -98,6 +100,7 @@ public class ImmutableUserRiskProfile {
     /**
      * Check if user has moderate transaction history
      */
+    @JsonIgnore
     public boolean hasModerateHistory() {
         return this.totalTransactions > 2 && this.totalTransactions <= 50;
     }
@@ -105,6 +108,7 @@ public class ImmutableUserRiskProfile {
     /**
      * Check if user is established
      */
+    @JsonIgnore
     public boolean isEstablished() {
         return this.totalTransactions > 50;
     }

@@ -1,20 +1,35 @@
 package com.nickfallico.financialriskmanagement.model;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
-import lombok.Data;
-import lombok.Builder;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
-
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Entity
 @Table(name = "transactions", 
     indexes = {
@@ -94,6 +109,7 @@ public class Transactions {
     /**
      * Check if transaction has valid geographic coordinates
      */
+    @JsonIgnore
     public boolean hasGeographicData() {
         return latitude != null && longitude != null;
     }
@@ -102,6 +118,7 @@ public class Transactions {
      * Calculate distance in kilometers between this transaction and another location
      * Uses Haversine formula for great-circle distance
      */
+    @JsonIgnore
     public double distanceInKmTo(Double otherLat, Double otherLon) {
         if (!hasGeographicData() || otherLat == null || otherLon == null) {
             return 0.0;
