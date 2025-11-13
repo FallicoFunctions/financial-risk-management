@@ -30,6 +30,7 @@ import com.nickfallico.financialriskmanagement.service.FraudDetectionService;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import reactor.core.publisher.Mono;
 
 @ExtendWith(MockitoExtension.class)
 class FraudDetectionServiceTest {
@@ -75,7 +76,7 @@ class FraudDetectionServiceTest {
             new FraudRule.FraudViolation("HIGH_AMOUNT", "Amount above threshold", 0.85)
         );
 
-        when(fraudRuleEngine.evaluateTransaction(any())).thenReturn(violations);
+        when(fraudRuleEngine.evaluateTransaction(any())).thenReturn(Mono.just(violations));
         when(fraudRuleEngine.calculateFraudProbability(violations)).thenReturn(0.92);
         when(fraudRuleEngine.determineAction(0.92)).thenReturn(FraudRuleEngine.FraudAction.BLOCK);
 
@@ -127,7 +128,7 @@ class FraudDetectionServiceTest {
 
         List<FraudRule.FraudViolation> violations = List.of();
 
-        when(fraudRuleEngine.evaluateTransaction(any())).thenReturn(violations);
+        when(fraudRuleEngine.evaluateTransaction(any())).thenReturn(Mono.just(violations));
         when(fraudRuleEngine.calculateFraudProbability(violations)).thenReturn(0.05);
         when(fraudRuleEngine.determineAction(0.05)).thenReturn(FraudRuleEngine.FraudAction.APPROVE);
 

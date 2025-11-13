@@ -69,7 +69,7 @@ class AdvancedFraudDetectionIntegrationTest {
         var context = new FraudRule.FraudEvaluationContext(currentTx, profile, null);
 
         // Evaluate
-        Optional<FraudRule.FraudViolation> violation = velocityRule.evaluate(context);
+        Optional<FraudRule.FraudViolation> violation = velocityRule.evaluate(context).block();
 
         // Assert
         assertThat(violation).isPresent();
@@ -94,7 +94,7 @@ class AdvancedFraudDetectionIntegrationTest {
         var context = new FraudRule.FraudEvaluationContext(currentTx, profile, null);
 
         // Evaluate
-        Optional<FraudRule.FraudViolation> violation = velocityRule.evaluate(context);
+        Optional<FraudRule.FraudViolation> violation = velocityRule.evaluate(context).block();
 
         // Assert
         assertThat(violation).isEmpty();
@@ -124,7 +124,7 @@ class AdvancedFraudDetectionIntegrationTest {
         var context = new FraudRule.FraudEvaluationContext(currentTx, profile, null);
 
         // Evaluate
-        Optional<FraudRule.FraudViolation> violation = geographicAnomalyRule.evaluate(context);
+        Optional<FraudRule.FraudViolation> violation = geographicAnomalyRule.evaluate(context).block();
 
         // Assert
         assertThat(violation).isPresent();
@@ -167,7 +167,7 @@ class AdvancedFraudDetectionIntegrationTest {
         var context = new FraudRule.FraudEvaluationContext(currentTx, profile, null);
 
         // Evaluate
-        Optional<FraudRule.FraudViolation> violation = geographicAnomalyRule.evaluate(context);
+        Optional<FraudRule.FraudViolation> violation = geographicAnomalyRule.evaluate(context).block();
 
         // Assert
         assertThat(violation).isPresent();
@@ -209,7 +209,7 @@ class AdvancedFraudDetectionIntegrationTest {
         var context = new FraudRule.FraudEvaluationContext(currentTx, profile, null);
 
         // Evaluate
-        Optional<FraudRule.FraudViolation> violation = impossibleTravelRule.evaluate(context);
+        Optional<FraudRule.FraudViolation> violation = impossibleTravelRule.evaluate(context).block();;
 
         // Assert
         assertThat(violation).isPresent();
@@ -249,7 +249,7 @@ class AdvancedFraudDetectionIntegrationTest {
         var context = new FraudRule.FraudEvaluationContext(currentTx, profile, null);
 
         // Evaluate
-        Optional<FraudRule.FraudViolation> violation = impossibleTravelRule.evaluate(context);
+        Optional<FraudRule.FraudViolation> violation = impossibleTravelRule.evaluate(context).block();;
 
         // Assert
         assertThat(violation).isEmpty();
@@ -279,7 +279,7 @@ class AdvancedFraudDetectionIntegrationTest {
         var context = new FraudRule.FraudEvaluationContext(currentTx, profile, null);
 
         // Evaluate
-        Optional<FraudRule.FraudViolation> violation = amountSpikeRule.evaluate(context);
+        Optional<FraudRule.FraudViolation> violation = amountSpikeRule.evaluate(context).block();
 
         // Assert
         assertThat(violation).isPresent();
@@ -309,7 +309,7 @@ class AdvancedFraudDetectionIntegrationTest {
         var context = new FraudRule.FraudEvaluationContext(currentTx, profile, null);
 
         // Evaluate
-        Optional<FraudRule.FraudViolation> violation = amountSpikeRule.evaluate(context);
+        Optional<FraudRule.FraudViolation> violation = amountSpikeRule.evaluate(context).block();
 
         // Assert
         assertThat(violation).isEmpty();
@@ -329,7 +329,7 @@ class AdvancedFraudDetectionIntegrationTest {
         var context = new FraudRule.FraudEvaluationContext(currentTx, profile, null);
 
         // Evaluate
-        Optional<FraudRule.FraudViolation> violation = amountSpikeRule.evaluate(context);
+        Optional<FraudRule.FraudViolation> violation = amountSpikeRule.evaluate(context).block();
 
         // Assert - should be empty because new users are skipped
         assertThat(violation).isEmpty();
