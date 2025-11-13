@@ -3,9 +3,11 @@ package com.nickfallico.financialriskmanagement.ml;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
 /**
  * Functional fraud rule engine.
@@ -33,17 +35,17 @@ public class FraudRuleEngine {
     private final AmountSpikeRule amountSpikeRule;
     
     /**
-     * Evaluate transaction against all fraud rules.
+     * Evaluate transaction against all fraud rules (reactive version).
      * Returns all violations found (can be multiple per transaction).
-     * Uses functional stream composition; no mutable state.
-     * 
+     * Uses reactive Flux composition; no blocking operations.
+     *
      * - 7 basic rules (amount, merchant, international, hours, user age, deviation, category)
      * - 4 advanced rules (velocity, geography, impossible travel, amount spike)
      */
-    public List<FraudRule.FraudViolation> evaluateTransaction(
+    public Mono<List<FraudRule.FraudViolation>> evaluateTransaction(
         FraudRule.FraudEvaluationContext context) {
-        
-        return List.of(
+
+        return Flux.fromIterable(List.of(
             // Basic rules
             highAmountRule,
             highRiskCategoryRule,
@@ -52,21 +54,22 @@ public class FraudRuleEngine {
             newUserRule,
             deviationRule,
             unusedCategoryRule,
-            
+
             // Advanced fraud detection rules
             velocityRule,
             geographicAnomalyRule,
             impossibleTravelRule,
             amountSpikeRule
-        )
-        .stream()
-        .flatMap(rule -> rule.evaluate(context).stream())
-        .peek(violation -> log.debug(
+        ))
+        .flatMap(rule -> rule.evaluate(context))
+        .filter(Optional::isPresent)
+        .map(Optional::get)
+        .doOnNext(violation -> log.debug(
             "Fraud rule triggered: {} - {}",
             violation.ruleId(),
             violation.description()
         ))
-        .collect(Collectors.toList());
+        .collectList();
     }
     
     /**

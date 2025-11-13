@@ -1,21 +1,23 @@
 package com.nickfallico.financialriskmanagement.ml;
 
 import java.util.Optional;
+import reactor.core.publisher.Mono;
 
 /**
  * Pure functional interface for fraud detection rules.
- * Each rule is a stateless function: Transaction + Profile → Optional<Violation>
+ * Each rule is a stateless function: Transaction + Profile → Mono<Optional<Violation>>
  * No side effects; fully testable in isolation.
+ * Reactive to support non-blocking database queries.
  */
 public interface FraudRule {
-    
+
     /**
-     * Evaluate transaction against this rule.
-     * 
+     * Evaluate transaction against this rule (reactive version).
+     *
      * @param context Immutable evaluation context
-     * @return Empty if rule passes; violation if triggered
+     * @return Mono containing empty if rule passes; violation if triggered
      */
-    Optional<FraudViolation> evaluate(FraudEvaluationContext context);
+    Mono<Optional<FraudViolation>> evaluate(FraudEvaluationContext context);
     
     /**
      * Immutable context containing all data needed for fraud evaluation.

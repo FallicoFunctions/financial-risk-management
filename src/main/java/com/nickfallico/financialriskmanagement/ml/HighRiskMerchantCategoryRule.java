@@ -2,6 +2,8 @@ package com.nickfallico.financialriskmanagement.ml;
 
 import org.springframework.stereotype.Component;
 
+import reactor.core.publisher.Mono;
+
 import java.util.Optional;
 import java.util.Set;
 
@@ -12,16 +14,16 @@ public class HighRiskMerchantCategoryRule implements FraudRule {
     );
     
     @Override
-    public Optional<FraudViolation> evaluate(FraudEvaluationContext ctx) {
+    public Mono<Optional<FraudViolation>> evaluate(FraudEvaluationContext ctx) {
         String category = ctx.transaction().getMerchantCategory();
         if (category != null && 
             HIGH_RISK_CATEGORIES.contains(category.toUpperCase())) {
-            return Optional.of(new FraudViolation(
+            return Mono.just(Optional.of(new FraudViolation(
                 "HIGH_RISK_CATEGORY",
                 "Transaction in high-risk merchant category: " + category,
                 0.9
-            ));
+            )));
         }
-        return Optional.empty();
+        return Mono.just(Optional.empty());
     }
 }

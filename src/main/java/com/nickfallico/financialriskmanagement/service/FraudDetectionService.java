@@ -29,49 +29,47 @@ public class FraudDetectionService {
     private final MeterRegistry meterRegistry;
     
     /**
-     * Assess fraud probability for transaction.
+     * Assess fraud probability for transaction (reactive).
      * Immutable design: profile and frequency are read-only.
      */
     public Mono<FraudAssessment> assessFraud(
         Transactions transaction,
         ImmutableUserRiskProfile profile,
         MerchantCategoryFrequency merchantFrequency) {
-        
-        return Mono.fromCallable(() -> {
-            Timer.Sample sample = Timer.start(meterRegistry);
-            
-            // Build immutable evaluation context
-            var context = new FraudRule.FraudEvaluationContext(
-                transaction,
-                profile,
-                merchantFrequency
-            );
-            
-            // Evaluate all rules (functional stream composition)
-            List<FraudRule.FraudViolation> violations = 
-                fraudRuleEngine.evaluateTransaction(context);
-            
-            // Calculate fraud probability
-            double fraudProbability = fraudRuleEngine.calculateFraudProbability(violations);
-            
-            // Determine action
-            FraudRuleEngine.FraudAction action = 
-                fraudRuleEngine.determineAction(fraudProbability);
-            
-            // Record metrics
-            recordMetrics(sample, transaction, violations, fraudProbability, action);
-            
-            // Log assessment
-            logAssessment(transaction, violations, fraudProbability, action);
-            
-            return new FraudAssessment(
-                transaction.getId(),
-                fraudProbability,
-                violations,
-                action,
-                System.currentTimeMillis()
-            );
-        });
+
+        Timer.Sample sample = Timer.start(meterRegistry);
+
+        // Build immutable evaluation context
+        var context = new FraudRule.FraudEvaluationContext(
+            transaction,
+            profile,
+            merchantFrequency
+        );
+
+        // Evaluate all rules (reactive functional composition)
+        return fraudRuleEngine.evaluateTransaction(context)
+            .map(violations -> {
+                // Calculate fraud probability
+                double fraudProbability = fraudRuleEngine.calculateFraudProbability(violations);
+
+                // Determine action
+                FraudRuleEngine.FraudAction action =
+                    fraudRuleEngine.determineAction(fraudProbability);
+
+                // Record metrics
+                recordMetrics(sample, transaction, violations, fraudProbability, action);
+
+                // Log assessment
+                logAssessment(transaction, violations, fraudProbability, action);
+
+                return new FraudAssessment(
+                    transaction.getId(),
+                    fraudProbability,
+                    violations,
+                    action,
+                    System.currentTimeMillis()
+                );
+            });
     }
     
     /**

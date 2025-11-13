@@ -4,27 +4,29 @@ import java.util.Optional;
 
 import org.springframework.stereotype.Component;
 
+import reactor.core.publisher.Mono;
+
 @Component
 public class UnusedMerchantCategoryRule implements FraudRule {
     
     @Override
-    public Optional<FraudViolation> evaluate(FraudEvaluationContext ctx) {
+    public Mono<Optional<FraudViolation>> evaluate(FraudEvaluationContext ctx) {
         String category = ctx.transaction().getMerchantCategory();
         
         if (category == null || ctx.merchantFrequency() == null) {
-            return Optional.empty();
+            return Mono.just(Optional.empty());
         }
         
         boolean categoryIsUnused = !ctx.merchantFrequency().isCategoryCommon(category);
         boolean hasHistory = ctx.profile().getTotalTransactions() > 5;
         
         if (categoryIsUnused && hasHistory) {
-            return Optional.of(new FraudViolation(
+            return Mono.just(Optional.of(new FraudViolation(
                 "UNUSED_CATEGORY",
                 "Transaction in merchant category never used by this user",
                 0.3
-            ));
+            )));
         }
-        return Optional.empty();
+        return Mono.just(Optional.empty());
     }
 }
