@@ -6,8 +6,10 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
 
 import jakarta.persistence.Entity;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /**
  * Immutable value object representing user risk profile.
@@ -18,6 +20,8 @@ import lombok.Getter;
 @jakarta.persistence.Table(name = "user_risk_profiles")
 @Table("user_risk_profiles")
 @Getter
+@NoArgsConstructor
+@AllArgsConstructor
 @Builder(toBuilder = true)
 public class ImmutableUserRiskProfile {
     
