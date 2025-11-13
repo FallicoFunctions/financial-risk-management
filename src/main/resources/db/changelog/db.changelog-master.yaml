@@ -3,7 +3,7 @@ databaseChangeLog:
       file: 001-create-transactions-table.sql
       relativeToChangelogFile: true
   - include:
-        file: 002-add-geographic-fields-to-transactions.sql
+      file: 002-add-geographic-fields-to-transactions.sql
       relativeToChangelogFile: true
   - include:
       file: 2025-10-30-create-user-risk-profiles.yaml
