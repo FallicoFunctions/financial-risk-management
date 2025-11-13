@@ -31,17 +31,22 @@ public interface TransactionRepository extends R2dbcRepository<Transactions, UUI
         Instant end
     );
 
-    @Query("INSERT INTO transactions (id, user_id, amount, currency, created_at, transaction_type, merchant_category, is_international, merchant_name) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *")
+    @Query("INSERT INTO transactions (id, user_id, amount, currency, created_at, transaction_type, merchant_category, is_international, merchant_name, latitude, longitude, country, city, ip_address) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *")
     Mono<Transactions> saveTransaction(
         UUID id,
-        String userId, 
-        BigDecimal amount, 
-        String currency, 
-        Instant createdAt, 
-        TransactionType transactionType, 
-        String merchantCategory, 
+        String userId,
+        BigDecimal amount,
+        String currency,
+        Instant createdAt,
+        TransactionType transactionType,
+        String merchantCategory,
         Boolean isInternational,
-        String merchantName
+        String merchantName,
+        Double latitude,
+        Double longitude,
+        String country,
+        String city,
+        String ipAddress
     );
 
     // Find transactions by merchant category
