@@ -28,7 +28,7 @@ public class TransactionRiskWorkflow {
     private final TransactionRepository txRepository;
 
     @Autowired(required = false)
-    private final TransactionEventProducer eventProducer;
+    private TransactionEventProducer eventProducer;
     
     /**
      * Process transaction with fire-and-forget fraud detection pattern.
