@@ -1,9 +1,12 @@
 package com.nickfallico.financialriskmanagement.kafka.config;
 
-import com.nickfallico.financialriskmanagement.kafka.event.*;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.annotation.EnableKafka;
@@ -12,10 +15,13 @@ import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 
-import java.util.HashMap;
-import java.util.Map;
+import com.nickfallico.financialriskmanagement.kafka.event.FraudClearedEvent;
+import com.nickfallico.financialriskmanagement.kafka.event.FraudDetectedEvent;
+import com.nickfallico.financialriskmanagement.kafka.event.TransactionBlockedEvent;
+import com.nickfallico.financialriskmanagement.kafka.event.TransactionCreatedEvent;
 
 @Configuration
+@ConditionalOnProperty(name = "spring.kafka.enabled", havingValue = "true", matchIfMissing = true)
 @EnableKafka
 public class KafkaConsumerConfig {
 
