@@ -1,18 +1,18 @@
 package com.nickfallico.financialriskmanagement.eventstore.projection;
 
+import java.time.Instant;
+import java.util.Map;
+
+import org.springframework.stereotype.Component;
+
 import com.nickfallico.financialriskmanagement.eventstore.model.EventLog;
 import com.nickfallico.financialriskmanagement.eventstore.model.EventType;
 import com.nickfallico.financialriskmanagement.model.ImmutableUserRiskProfile;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
-import java.time.Instant;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * User Profile Projection - Rebuilds user risk profiles from event history.

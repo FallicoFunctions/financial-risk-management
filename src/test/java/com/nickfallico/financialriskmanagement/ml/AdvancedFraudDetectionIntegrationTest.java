@@ -1,16 +1,6 @@
 package com.nickfallico.financialriskmanagement.ml;
 
-import com.nickfallico.financialriskmanagement.config.TestR2dbcConfig;
-import com.nickfallico.financialriskmanagement.model.ImmutableUserRiskProfile;
-import com.nickfallico.financialriskmanagement.model.MerchantCategoryFrequency;
-import com.nickfallico.financialriskmanagement.model.Transactions;
-import com.nickfallico.financialriskmanagement.repository.TransactionRepository;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.ActiveProfiles;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -18,7 +8,17 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
+
+import com.nickfallico.financialriskmanagement.config.TestR2dbcConfig;
+import com.nickfallico.financialriskmanagement.model.ImmutableUserRiskProfile;
+import com.nickfallico.financialriskmanagement.model.Transactions;
+import com.nickfallico.financialriskmanagement.repository.TransactionRepository;
 
 /**
  * Integration tests for advanced fraud detection rules.
