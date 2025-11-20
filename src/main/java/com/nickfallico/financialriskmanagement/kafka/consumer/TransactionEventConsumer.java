@@ -1,5 +1,6 @@
 package com.nickfallico.financialriskmanagement.kafka.consumer;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.handler.annotation.Header;
@@ -18,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
  * Processes events asynchronously and stores them in event log.
  */
 @Component
+@ConditionalOnProperty(name = "spring.kafka.enabled", havingValue = "true", matchIfMissing = true)
 @Slf4j
 @RequiredArgsConstructor
 public class TransactionEventConsumer {

@@ -1,17 +1,20 @@
 package com.nickfallico.financialriskmanagement.kafka.consumer;
 
-import com.nickfallico.financialriskmanagement.eventstore.model.EventType;
-import com.nickfallico.financialriskmanagement.eventstore.service.EventStoreService;
-import com.nickfallico.financialriskmanagement.kafka.event.FraudDetectedEvent;
-import com.nickfallico.financialriskmanagement.kafka.event.FraudClearedEvent;
-import com.nickfallico.financialriskmanagement.kafka.event.TransactionBlockedEvent;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
+
+import com.nickfallico.financialriskmanagement.eventstore.model.EventType;
+import com.nickfallico.financialriskmanagement.eventstore.service.EventStoreService;
+import com.nickfallico.financialriskmanagement.kafka.event.FraudClearedEvent;
+import com.nickfallico.financialriskmanagement.kafka.event.FraudDetectedEvent;
+import com.nickfallico.financialriskmanagement.kafka.event.TransactionBlockedEvent;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Kafka consumer for fraud-related events.
@@ -19,6 +22,7 @@ import org.springframework.stereotype.Component;
  * All events are stored in event log for compliance.
  */
 @Component
+@ConditionalOnProperty(name = "spring.kafka.enabled", havingValue = "true", matchIfMissing = true)
 @Slf4j
 @RequiredArgsConstructor
 public class FraudEventConsumer {
