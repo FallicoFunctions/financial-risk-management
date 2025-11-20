@@ -2,6 +2,7 @@ package com.nickfallico.financialriskmanagement.service;
 
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.nickfallico.financialriskmanagement.kafka.event.FraudClearedEvent;
@@ -25,6 +26,8 @@ public class TransactionRiskWorkflow {
     private final FraudDetectionService fraudService;
     private final UserProfileService profileService;
     private final TransactionRepository txRepository;
+
+    @Autowired(required = false)
     private final TransactionEventProducer eventProducer;
     
     /**
@@ -59,8 +62,11 @@ public class TransactionRiskWorkflow {
             // STEP 2: Publish TransactionCreated event
             TransactionCreatedEvent event = TransactionCreatedEvent.fromTransaction(savedTx);
             
-            return eventProducer.publishTransactionCreated(event)
-                .thenReturn(savedTx);
+            if (eventProducer != null) {
+                return eventProducer.publishTransactionCreated(event)
+                    .thenReturn(savedTx);
+            }
+            return Mono.just(savedTx);
         })
         .doOnSuccess(savedTx -> {
             // STEP 3: Trigger async fraud detection (fire-and-forget)
@@ -122,9 +128,13 @@ public class TransactionRiskWorkflow {
                     );
                     
                     // Publish events (timeout/error handling is in producer methods)
-                    return eventProducer.publishFraudDetected(fraudEvent)
-                        .then(eventProducer.publishTransactionBlocked(blockedEvent))
-                        .then(profileService.updateProfileAfterTransaction(transaction))
+                    if (eventProducer != null) {
+                        return eventProducer.publishFraudDetected(fraudEvent)
+                            .then(eventProducer.publishTransactionBlocked(blockedEvent))
+                            .then(profileService.updateProfileAfterTransaction(transaction))
+                            .thenReturn(assessment);
+                    }
+                    return profileService.updateProfileAfterTransaction(transaction)
                         .thenReturn(assessment);
                 }
                 
@@ -139,8 +149,12 @@ public class TransactionRiskWorkflow {
                     assessment.violations().size()
                 );
                 
-                return eventProducer.publishFraudCleared(clearedEvent)
-                    .then(profileService.updateProfileAfterTransaction(transaction))
+                if (eventProducer != null) {
+                    return eventProducer.publishFraudCleared(clearedEvent)
+                        .then(profileService.updateProfileAfterTransaction(transaction))
+                        .thenReturn(assessment);
+                }
+                return profileService.updateProfileAfterTransaction(transaction)
                     .thenReturn(assessment);
             });
     }
