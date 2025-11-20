@@ -60,7 +60,8 @@ public class TransactionWorkflowIntegrationTest {
     }
 
     @Test
-    void testHighRiskTransactionRejection() {
+    void testHighRiskTransactionProcessing() {
+        // High-risk transaction: large amount, gambling, international
         TransactionDTO highRiskTransaction = TransactionDTO.builder()
             .userId("user456")
             .amount(BigDecimal.valueOf(50000))
@@ -70,6 +71,8 @@ public class TransactionWorkflowIntegrationTest {
             .isInternational(true)
             .build();
 
+        // Fire-and-forget architecture: transaction should succeed immediately
+        // Fraud detection happens asynchronously in background
         StepVerifier.create(transactionRiskWorkflow.processTransaction(
             Transactions.builder()
                 .userId(highRiskTransaction.getUserId())
@@ -81,7 +84,16 @@ public class TransactionWorkflowIntegrationTest {
                 .createdAt(Instant.now())
                 .build()
         ))
-        .expectError()
-        .verify();
+        .expectNextMatches(transaction -> {
+            assertNotNull(transaction.getId());
+            assertEquals("user456", transaction.getUserId());
+            assertEquals(0, transaction.getAmount().compareTo(BigDecimal.valueOf(50000)));
+            assertEquals("GAMBLING", transaction.getMerchantCategory());
+            return true;
+        })
+        .verifyComplete();
+        
+        // Note: Fraud detection runs asynchronously and will publish
+        // FraudDetected and TransactionBlocked events in the background
     }
 }
