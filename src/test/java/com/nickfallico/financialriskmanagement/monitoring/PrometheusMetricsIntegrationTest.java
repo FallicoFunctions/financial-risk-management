@@ -206,4 +206,19 @@ class PrometheusMetricsIntegrationTest {
         assertThat(metricsResponse).containsPattern("http_server_requests_seconds.*method=\".*\"");
         assertThat(metricsResponse).containsPattern("http_server_requests_seconds.*status=\".*\"");
     }
+
+    @Test
+    @DisplayName("DEBUG: Test if ANY actuator endpoint works")
+    void debugActuatorHealth() {
+        webTestClient.get()
+            .uri("/actuator/health")
+            .exchange()
+            .expectStatus().isOk()
+            .expectBody(String.class)
+            .consumeWith(result -> {
+                System.out.println("=== HEALTH RESPONSE ===");
+                System.out.println(result.getResponseBody());
+                System.out.println("=======================");
+            });
+    }
 }
