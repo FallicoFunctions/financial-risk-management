@@ -21,7 +21,6 @@ import reactor.core.publisher.Mono;
  */
 @Service
 @Slf4j
-@RequiredArgsConstructor
 public class NotificationService {
     
     private final MeterRegistry meterRegistry;

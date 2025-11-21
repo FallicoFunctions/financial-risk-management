@@ -23,7 +23,6 @@ import reactor.core.publisher.Mono;
  */
 @Service
 @Slf4j
-@RequiredArgsConstructor
 public class FraudAlertService {
     
     private final MeterRegistry meterRegistry;
