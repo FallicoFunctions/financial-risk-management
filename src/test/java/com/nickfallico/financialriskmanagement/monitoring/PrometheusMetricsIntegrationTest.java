@@ -221,4 +221,19 @@ class PrometheusMetricsIntegrationTest {
                 System.out.println("=======================");
             });
     }
+
+    @Test
+    @DisplayName("DEBUG: Show actual error from actuator")
+    void debugShowActuatorError() {
+        webTestClient.get()
+            .uri("/actuator/health")
+            .exchange()
+            .expectBody(String.class)
+            .consumeWith(result -> {
+                System.out.println("=== STATUS: " + result.getStatus());
+                System.out.println("=== RESPONSE BODY ===");
+                System.out.println(result.getResponseBody());
+                System.out.println("====================");
+            });
+    }
 }

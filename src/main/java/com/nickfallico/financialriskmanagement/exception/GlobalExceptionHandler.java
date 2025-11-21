@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import reactor.core.publisher.Mono;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -106,7 +107,7 @@ public class GlobalExceptionHandler {
 
     // Fallback handler for any unexpected exceptions
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleUnexpectedException(Exception ex) {
+    public Mono<ResponseEntity<ErrorResponse>> handleUnexpectedException(Exception ex) {
         String errorId = generateErrorId();
         logger.error("Unexpected Error [ErrorID: {}]: Unhandled exception", errorId, ex);
         
@@ -117,7 +118,7 @@ public class GlobalExceptionHandler {
             Instant.now()
         );
         
-        return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
+        return Mono.just(new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR));
     }
 
     // Generate a unique error ID for traceability
