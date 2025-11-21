@@ -81,7 +81,12 @@ public class EventReplayController {
         @PathVariable String userId,
         @RequestParam String timestamp
     ) {
-        Instant asOfTime = Instant.parse(timestamp);
+        Instant asOfTime;
+        try {
+            asOfTime = Instant.parse(timestamp);
+        } catch (Exception ex) {
+            return Mono.just(ResponseEntity.badRequest().build());
+        }
 
         log.info("API request: Time-travel query for user {} as of {}", userId, asOfTime);
 
@@ -156,7 +161,16 @@ public class EventReplayController {
         @RequestParam String since,
         @RequestParam(defaultValue = "10") int batchSize
     ) {
-        Instant sinceTime = Instant.parse(since);
+        Instant sinceTime;
+        try {
+            sinceTime = Instant.parse(since);
+        } catch (Exception ex) {
+            Map<String, Object> errorResponse = Map.of(
+                "status", "error",
+                "message", "Invalid timestamp format for 'since'"
+            );
+            return Mono.just(ResponseEntity.badRequest().body(errorResponse));
+        }
 
         log.info("API request: Incremental replay since {} with batchSize={}", sinceTime, batchSize);
 

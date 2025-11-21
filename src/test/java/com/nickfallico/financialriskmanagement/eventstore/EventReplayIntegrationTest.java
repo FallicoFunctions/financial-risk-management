@@ -210,7 +210,7 @@ class EventReplayIntegrationTest {
                 .queryParam("timestamp", "invalid-timestamp")
                 .build())
             .exchange()
-            .expectStatus().is5xxServerError(); // Should return error for invalid format
+            .expectStatus().isBadRequest(); // Invalid format should return 400
     }
 
     @Test
