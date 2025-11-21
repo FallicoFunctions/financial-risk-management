@@ -12,6 +12,9 @@ import com.nickfallico.financialriskmanagement.eventstore.service.EventStoreServ
 import com.nickfallico.financialriskmanagement.kafka.event.FraudClearedEvent;
 import com.nickfallico.financialriskmanagement.kafka.event.FraudDetectedEvent;
 import com.nickfallico.financialriskmanagement.kafka.event.TransactionBlockedEvent;
+import com.nickfallico.financialriskmanagement.service.FraudAlertService;
+import com.nickfallico.financialriskmanagement.service.NotificationService;
+import com.nickfallico.financialriskmanagement.service.UserProfileService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +31,9 @@ import lombok.extern.slf4j.Slf4j;
 public class FraudEventConsumer {
     
     private final EventStoreService eventStoreService;
+    private final FraudAlertService fraudAlertService;
+    private final UserProfileService userProfileService;
+    private final NotificationService notificationService;
     
     /**
      * Handle FraudDetectedEvent - Critical security event
@@ -71,11 +77,38 @@ public class FraudEventConsumer {
         )
         .subscribe();
         
-        // TODO: Real actions
-        // - Send alert to fraud investigation team
-        // - Update user's risk score immediately
-        // - Log to security audit system
-        // - Add to fraud investigation queue
+        // Send alert to fraud investigation team
+        fraudAlertService.sendFraudAlert(event)
+            .doOnSuccess(v -> log.info("✅ Fraud alert sent to investigation team"))
+            .doOnError(error -> log.error("❌ Failed to send fraud alert", error))
+            .subscribe();
+        
+        // Update user's risk score immediately
+        userProfileService.increaseRiskScoreForFraud(
+                event.getUserId(),
+                event.getFraudProbability(),
+                event.getRiskLevel()
+            )
+            .doOnSuccess(profile -> 
+                log.info("✅ User risk score updated: userId={}, newScore={}", 
+                    event.getUserId(), profile.getOverallRiskScore())
+            )
+            .doOnError(error -> 
+                log.error("❌ Failed to update user risk score", error)
+            )
+            .subscribe();
+        
+        // Optionally notify user (be careful - could alert fraudsters)
+        // Only for REVIEW actions, not BLOCK actions
+        if ("REVIEW".equals(event.getAction())) {
+            notificationService.sendSuspiciousActivityAlert(
+                    event.getUserId(),
+                    event.getTransactionId(),
+                    "Unusual activity detected on your account"
+                )
+                .doOnError(error -> log.error("❌ Failed to send user notification", error))
+                .subscribe();
+        }
         
         log.warn("⚠️  Fraud investigation required for user: {}", event.getUserId());
     }
@@ -118,10 +151,20 @@ public class FraudEventConsumer {
         )
         .subscribe();
         
-        // TODO: Real actions
-        // - Log successful validation
-        // - Update fraud detection metrics (true negatives)
-        // - Reset any temporary fraud flags
+        // Log successful validation (for fraud detection metrics - true negatives)
+        log.info("✅ Transaction cleared fraud checks: transactionId={}, checksPerformed={}",
+            event.getTransactionId(), event.getChecksPerformed());
+        
+        // Send transaction confirmation to user
+        notificationService.sendTransactionConfirmation(
+                event.getUserId(),
+                event.getTransactionId(),
+                event.getAmount(),
+                event.getCurrency(),
+                event.getMerchantCategory()
+            )
+            .doOnError(error -> log.error("❌ Failed to send transaction confirmation", error))
+            .subscribe();
     }
     
     /**
@@ -167,11 +210,22 @@ public class FraudEventConsumer {
         )
         .subscribe();
         
-        // TODO: Real actions
-        // - Send notification to user (optional - could alert fraudsters)
-        // - Log to compliance/audit system
-        // - Update blocked transactions counter
-        // - Add to security monitoring dashboard
+        // Send alert to fraud team
+        fraudAlertService.sendBlockedTransactionAlert(event)
+            .doOnSuccess(v -> log.info("✅ Blocked transaction alert sent"))
+            .doOnError(error -> log.error("❌ Failed to send blocked transaction alert", error))
+            .subscribe();
+        
+        // Notify user that transaction was blocked
+        notificationService.sendTransactionBlockedNotification(
+                event.getUserId(),
+                event.getTransactionId(),
+                event.getAmount(),
+                event.getCurrency(),
+                event.getBlockReason()
+            )
+            .doOnError(error -> log.error("❌ Failed to send blocked transaction notification", error))
+            .subscribe();
         
         if ("CRITICAL".equals(event.getSeverity())) {
             log.error("🚨 CRITICAL SEVERITY - Immediate review required!");

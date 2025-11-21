@@ -1,20 +1,5 @@
 package com.nickfallico.financialriskmanagement.service;
 
-import com.nickfallico.financialriskmanagement.model.ImmutableUserRiskProfile;
-import com.nickfallico.financialriskmanagement.model.MerchantCategoryFrequency;
-import com.nickfallico.financialriskmanagement.model.Transactions;
-import com.nickfallico.financialriskmanagement.repository.MerchantCategoryFrequencyRepository;
-import com.nickfallico.financialriskmanagement.repository.TransactionRepository;
-import com.nickfallico.financialriskmanagement.repository.ImmutableUserRiskProfileRepository;
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Timer;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.stereotype.Service;
-import reactor.core.publisher.Mono;
-
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Comparator;
@@ -22,6 +7,23 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.stereotype.Service;
+
+import com.nickfallico.financialriskmanagement.model.ImmutableUserRiskProfile;
+import com.nickfallico.financialriskmanagement.model.MerchantCategoryFrequency;
+import com.nickfallico.financialriskmanagement.model.Transactions;
+import com.nickfallico.financialriskmanagement.repository.ImmutableUserRiskProfileRepository;
+import com.nickfallico.financialriskmanagement.repository.MerchantCategoryFrequencyRepository;
+import com.nickfallico.financialriskmanagement.repository.TransactionRepository;
+
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Mono;
 
 /**
  * User profile service using event sourcing.
@@ -271,5 +273,66 @@ public class UserProfileService {
         boolean international = Boolean.TRUE.equals(tx.getIsInternational());
         
         return highRiskCategory || highAmount || international;
+    }
+
+    /**
+     * Update user risk score after fraud detection.
+     * Increases risk score and invalidates cache.
+     */
+    @CacheEvict(
+        value = {"userProfiles", "merchantFrequencies"},
+        key = "#userId"
+    )
+    public Mono<ImmutableUserRiskProfile> increaseRiskScoreForFraud(
+        String userId,
+        Double fraudProbability,
+        String riskLevel
+    ) {
+        Timer.Sample sample = Timer.start(meterRegistry);
+        
+        return immutableUserRiskProfileRepository.findById(userId)
+            .switchIfEmpty(Mono.fromSupplier(() -> ImmutableUserRiskProfile.createNew(userId)))
+            .flatMap(currentProfile -> {
+                // Calculate new risk score based on fraud detection
+                Double currentScore = currentProfile.getOverallRiskScore();
+                Double increment = calculateRiskScoreIncrement(fraudProbability, riskLevel);
+                Double newScore = Math.min(1.0, currentScore + increment);
+                
+                // Increment high risk transaction count
+                int newHighRiskCount = currentProfile.getHighRiskTransactions() + 1;
+                
+                // Create updated profile with increased risk score
+                ImmutableUserRiskProfile updatedProfile = currentProfile.toBuilder()
+                    .overallRiskScore(newScore)
+                    .highRiskTransactions(newHighRiskCount)
+                    .behavioralRiskScore(Math.min(1.0, currentProfile.getBehavioralRiskScore() + (increment * 0.5)))
+                    .lastTransactionDate(Instant.now())
+                    .build();
+                
+                return immutableUserRiskProfileRepository.save(updatedProfile)
+                    .doOnSuccess(profile -> {
+                        sample.stop(meterRegistry.timer("update_risk_score_time"));
+                        meterRegistry.counter("risk_score_updates",
+                            "risk_level", riskLevel
+                        ).increment();
+                        
+                        log.warn("Risk score updated for user {}: {} -> {} (fraud detected, level: {})",
+                            userId, currentScore, newScore, riskLevel);
+                    });
+            });
+    }
+    
+    /**
+     * Calculate risk score increment based on fraud severity.
+     * Returns a value between 0.0 and 1.0 to add to the risk score.
+     */
+    private Double calculateRiskScoreIncrement(Double fraudProbability, String riskLevel) {
+        return switch (riskLevel) {
+            case "CRITICAL" -> 0.3 + (fraudProbability * 0.2);
+            case "HIGH" -> 0.2 + (fraudProbability * 0.15);
+            case "MEDIUM" -> 0.1 + (fraudProbability * 0.1);
+            case "LOW" -> 0.05 + (fraudProbability * 0.05);
+            default -> fraudProbability * 0.1;
+        };
     }
 }
