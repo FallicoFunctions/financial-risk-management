@@ -1,18 +1,28 @@
 package com.nickfallico.financialriskmanagement.controller;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.nickfallico.financialriskmanagement.dto.FraudEventDTO;
 import com.nickfallico.financialriskmanagement.dto.FraudHistoryResponseDTO;
 import com.nickfallico.financialriskmanagement.eventstore.model.EventLog;
 import com.nickfallico.financialriskmanagement.eventstore.repository.EventLogRepository;
+
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
-
-import java.util.*;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/users")

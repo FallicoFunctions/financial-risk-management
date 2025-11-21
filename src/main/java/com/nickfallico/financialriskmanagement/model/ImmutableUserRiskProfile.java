@@ -8,19 +8,11 @@ import org.springframework.data.relational.core.mapping.Table;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-import jakarta.persistence.Entity;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-/**
- * Immutable value object representing user risk profile.
- * All state is computed from transaction history (event sourcing approach).
- * No setters; state changes via builder pattern only.
- */
-@Entity
-@jakarta.persistence.Table(name = "user_risk_profiles")
 @Table("user_risk_profiles")
 @Getter
 @NoArgsConstructor
@@ -29,7 +21,6 @@ import lombok.NoArgsConstructor;
 @JsonIgnoreProperties(ignoreUnknown = true) 
 public class ImmutableUserRiskProfile {
     
-    @jakarta.persistence.Id
     @Id
     private String userId;
     
@@ -46,7 +37,6 @@ public class ImmutableUserRiskProfile {
     private Instant firstTransactionDate;
     private Instant lastTransactionDate;
     
-    // Factory method: Create new profile for user
     public static ImmutableUserRiskProfile createNew(String userId) {
         Instant now = Instant.now();
         return ImmutableUserRiskProfile.builder()
@@ -64,7 +54,6 @@ public class ImmutableUserRiskProfile {
             .build();
     }
     
-    // Builder method: Create updated profile (functional approach)
     public ImmutableUserRiskProfile withUpdatedMetrics(
         double avgAmount,
         int totalTx,
@@ -89,25 +78,16 @@ public class ImmutableUserRiskProfile {
             .build();
     }
     
-    /**
-     * Check if this is a new user (zero or very few transactions)
-     */
     @JsonIgnore
     public boolean isNewUser() {
         return this.totalTransactions <= 2;
     }
     
-    /**
-     * Check if user has moderate transaction history
-     */
     @JsonIgnore
     public boolean hasModerateHistory() {
         return this.totalTransactions > 2 && this.totalTransactions <= 50;
     }
     
-    /**
-     * Check if user is established
-     */
     @JsonIgnore
     public boolean isEstablished() {
         return this.totalTransactions > 50;
