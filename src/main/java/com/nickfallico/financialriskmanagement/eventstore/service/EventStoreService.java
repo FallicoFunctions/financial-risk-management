@@ -93,6 +93,34 @@ public class EventStoreService {
                     .increment();
             });
     }
+
+    /**
+     * Convenience wrapper to publish an event using simple string parameters.
+     * Resolves the {@link EventType} from its name and delegates to {@link #storeEvent}.
+     */
+    public Mono<EventLog> publishEvent(
+        String aggregateId,
+        String aggregateType,
+        String eventTypeName,
+        Map<String, Object> eventData,
+        Map<String, Object> metadata
+    ) {
+        EventType eventType;
+        try {
+            eventType = EventType.valueOf(eventTypeName);
+        } catch (IllegalArgumentException ex) {
+            log.error("Attempted to publish unknown event type: {}", eventTypeName, ex);
+            return Mono.error(ex);
+        }
+
+        return storeEvent(
+            eventType,
+            aggregateId,
+            aggregateType,
+            eventData,
+            metadata != null ? metadata : new HashMap<>()
+        );
+    }
     
     /**
      * Get complete event history for an aggregate (user or transaction).

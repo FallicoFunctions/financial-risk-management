@@ -9,7 +9,6 @@ import com.nickfallico.financialriskmanagement.kafka.event.TransactionBlockedEve
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
