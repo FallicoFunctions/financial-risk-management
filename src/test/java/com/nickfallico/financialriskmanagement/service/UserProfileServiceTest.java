@@ -1,31 +1,35 @@
 package com.nickfallico.financialriskmanagement.service;
 
-import com.nickfallico.financialriskmanagement.model.ImmutableUserRiskProfile;
-import com.nickfallico.financialriskmanagement.model.MerchantCategoryFrequency;
-import com.nickfallico.financialriskmanagement.model.Transactions;
-import com.nickfallico.financialriskmanagement.repository.ImmutableUserRiskProfileRepository;
-import com.nickfallico.financialriskmanagement.repository.MerchantCategoryFrequencyRepository;
-import com.nickfallico.financialriskmanagement.repository.TransactionRepository;
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.UUID;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import com.nickfallico.financialriskmanagement.model.ImmutableUserRiskProfile;
+import com.nickfallico.financialriskmanagement.model.MerchantCategoryFrequency;
+import com.nickfallico.financialriskmanagement.model.Transactions;
+import com.nickfallico.financialriskmanagement.repository.ImmutableUserRiskProfileRepository;
+import com.nickfallico.financialriskmanagement.repository.MerchantCategoryFrequencyRepository;
+import com.nickfallico.financialriskmanagement.repository.TransactionRepository;
+
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
-
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for UserProfileService.

@@ -1,18 +1,20 @@
 package com.nickfallico.financialriskmanagement;
 
-import com.nickfallico.financialriskmanagement.dto.TransactionDTO;
-import com.nickfallico.financialriskmanagement.model.Transactions;
-import com.nickfallico.financialriskmanagement.service.TransactionRiskWorkflow;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import reactor.test.StepVerifier;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+
+import com.nickfallico.financialriskmanagement.dto.TransactionDTO;
+import com.nickfallico.financialriskmanagement.model.Transactions;
+import com.nickfallico.financialriskmanagement.service.TransactionRiskWorkflow;
+
+import reactor.test.StepVerifier;
 
 @SpringBootTest(
     properties = {

@@ -1,17 +1,18 @@
 package com.nickfallico.financialriskmanagement;
 
-import com.nickfallico.financialriskmanagement.ml.FraudDetectionModel;
-import com.nickfallico.financialriskmanagement.model.Transactions;
-import com.nickfallico.financialriskmanagement.model.ImmutableUserRiskProfile;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.math.BigDecimal;
-import java.time.Instant;
-
-import static org.junit.jupiter.api.Assertions.*;
+import com.nickfallico.financialriskmanagement.ml.FraudDetectionModel;
+import com.nickfallico.financialriskmanagement.model.ImmutableUserRiskProfile;
+import com.nickfallico.financialriskmanagement.model.Transactions;
 
 @ActiveProfiles("test")
 @SpringBootTest(

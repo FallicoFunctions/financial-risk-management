@@ -1,6 +1,7 @@
 package com.nickfallico.financialriskmanagement.monitoring;
 
-import com.nickfallico.financialriskmanagement.config.TestR2dbcConfig;
+import static org.assertj.core.api.Assertions.assertThat;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,7 +11,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import com.nickfallico.financialriskmanagement.config.TestR2dbcConfig;
 
 /**
  * Integration tests for Prometheus metrics endpoints.
