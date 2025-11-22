@@ -22,6 +22,13 @@ import com.nickfallico.financialriskmanagement.repository.TransactionRepository;
 import com.nickfallico.financialriskmanagement.service.UserProfileService;
 
 import io.micrometer.core.instrument.MeterRegistry;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
@@ -34,21 +41,27 @@ import reactor.core.publisher.Mono;
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
 @Slf4j
+@Tag(name = "Risk Assessment", description = "User risk profiles and assessment endpoints")
 public class UserRiskController {
     
     private final UserProfileService userProfileService;
     private final TransactionRepository transactionRepository;
     private final MeterRegistry meterRegistry;
     
-    /**
-     * Get comprehensive risk profile for a user.
-     * 
-     * @param userId The user ID
-     * @return User risk profile with transaction statistics
-     */
+    @Operation(
+        summary = "Get user risk profile",
+        description = "Retrieves comprehensive risk assessment for a user including behavioral and transaction risk scores, " +
+            "risk level classification, and transaction statistics. The profile is continuously updated based on user activity."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Risk profile retrieved successfully",
+            content = @Content(schema = @Schema(implementation = UserRiskProfileDTO.class))),
+        @ApiResponse(responseCode = "404", description = "User risk profile not found"),
+        @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
     @GetMapping("/{userId}/risk-profile")
     public Mono<ResponseEntity<UserRiskProfileDTO>> getUserRiskProfile(
-        @PathVariable String userId
+        @Parameter(description = "User ID", required = true) @PathVariable String userId
     ) {
         log.info("API request: Get risk profile for user: {}", userId);
         meterRegistry.counter("api.risk_profile.requests", "user_id", userId).increment();
@@ -75,15 +88,20 @@ public class UserRiskController {
             });
     }
     
-    /**
-     * Get detailed transaction statistics for a user.
-     * 
-     * @param userId The user ID
-     * @return Detailed transaction statistics
-     */
+    @Operation(
+        summary = "Get transaction statistics",
+        description = "Retrieves detailed transaction statistics for a user including totals, averages, breakdowns by category, " +
+            "country, type, and recent activity metrics."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Statistics retrieved successfully",
+            content = @Content(schema = @Schema(implementation = TransactionStatisticsDTO.class))),
+        @ApiResponse(responseCode = "404", description = "No transactions found for user"),
+        @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
     @GetMapping("/{userId}/transaction-statistics")
     public Mono<ResponseEntity<TransactionStatisticsDTO>> getTransactionStatistics(
-        @PathVariable String userId
+        @Parameter(description = "User ID", required = true) @PathVariable String userId
     ) {
         log.info("API request: Get transaction statistics for user: {}", userId);
         meterRegistry.counter("api.transaction_statistics.requests", "user_id", userId).increment();
@@ -108,15 +126,19 @@ public class UserRiskController {
             });
     }
     
-    /**
-     * Get user risk level summary (lightweight endpoint).
-     * 
-     * @param userId The user ID
-     * @return Simple risk level assessment
-     */
+    @Operation(
+        summary = "Get user risk level",
+        description = "Retrieves a lightweight risk level summary for a user. Returns risk level classification " +
+            "(LOW/MEDIUM/HIGH/CRITICAL) and key risk scores."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Risk level retrieved successfully"),
+        @ApiResponse(responseCode = "404", description = "User risk profile not found"),
+        @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
     @GetMapping("/{userId}/risk-level")
     public Mono<ResponseEntity<Map<String, Object>>> getUserRiskLevel(
-        @PathVariable String userId
+        @Parameter(description = "User ID", required = true) @PathVariable String userId
     ) {
         log.info("API request: Get risk level for user: {}", userId);
         

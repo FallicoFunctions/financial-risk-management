@@ -9,6 +9,13 @@ import com.nickfallico.financialriskmanagement.eventstore.service.EventStoreServ
 import com.nickfallico.financialriskmanagement.model.Transactions;
 import com.nickfallico.financialriskmanagement.repository.TransactionRepository;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +32,7 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
 @Slf4j
+@Tag(name = "Administration", description = "Administrative endpoints for fraud investigation and rule management")
 public class AdminController {
 
     private final EventLogRepository eventLogRepository;
@@ -32,10 +40,21 @@ public class AdminController {
     private final EventStoreService eventStoreService;
     private final MeterRegistry meterRegistry;
 
+    @Operation(
+        summary = "Get flagged transactions",
+        description = "Retrieves transactions flagged for fraud review. Returns transaction details with fraud probability, " +
+            "risk level, reasons for flagging, and review status. Results are sorted by most recent first."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Flagged transactions retrieved successfully"),
+        @ApiResponse(responseCode = "401", description = "Unauthorized"),
+        @ApiResponse(responseCode = "403", description = "Forbidden - Admin access required")
+    })
     @GetMapping("/flagged-transactions")
     public Mono<ResponseEntity<List<FlaggedTransactionDTO>>> getFlaggedTransactions(
+        @Parameter(description = "Filter by review status (PENDING, APPROVED, REJECTED)")
         @RequestParam(required = false) String status,
-        @RequestParam(defaultValue = "50") int limit
+        @Parameter(description = "Maximum number of results") @RequestParam(defaultValue = "50") int limit
     ) {
         log.info("Fetching flagged transactions - status: {}, limit: {}", status, limit);
         meterRegistry.counter("api.admin.flagged_transactions.requests").increment();
@@ -76,9 +95,22 @@ public class AdminController {
             });
     }
 
+    @Operation(
+        summary = "Review flagged transaction",
+        description = "Submit a review decision for a flagged transaction. Decisions can be APPROVE (clear fraud flag), " +
+            "REJECT (confirm fraud), or ESCALATE (escalate for higher-level review). An event is published to record the review."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Review submitted successfully"),
+        @ApiResponse(responseCode = "400", description = "Invalid request data"),
+        @ApiResponse(responseCode = "404", description = "Transaction not found"),
+        @ApiResponse(responseCode = "401", description = "Unauthorized"),
+        @ApiResponse(responseCode = "403", description = "Forbidden - Admin access required")
+    })
     @PutMapping("/transactions/{transactionId}/review")
     public Mono<ResponseEntity<Map<String, String>>> reviewTransaction(
-        @PathVariable UUID transactionId,
+        @Parameter(description = "Transaction ID", required = true) @PathVariable UUID transactionId,
+        @Parameter(description = "Review decision and notes", required = true)
         @Valid @RequestBody TransactionReviewRequestDTO request
     ) {
         log.info("Reviewing transaction {} - decision: {}, reviewer: {}",
@@ -121,6 +153,16 @@ public class AdminController {
             });
     }
 
+    @Operation(
+        summary = "Get fraud detection rules",
+        description = "Retrieves all fraud detection rules used by the risk engine. Each rule has a risk weight, category, " +
+            "and activation status. Rules are applied during transaction risk assessment."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Fraud rules retrieved successfully"),
+        @ApiResponse(responseCode = "401", description = "Unauthorized"),
+        @ApiResponse(responseCode = "403", description = "Forbidden - Admin access required")
+    })
     @GetMapping("/fraud-rules")
     public Mono<ResponseEntity<List<FraudRuleDTO>>> getFraudRules() {
         log.info("Fetching fraud detection rules");
