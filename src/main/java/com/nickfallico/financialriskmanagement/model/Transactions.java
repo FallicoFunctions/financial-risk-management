@@ -32,6 +32,11 @@ public class Transactions implements Persistable<UUID> {
     @Id
     private UUID id;
 
+    @Transient
+    @JsonIgnore
+    @Builder.Default
+    private boolean isNew = true;
+
     @NotBlank(message = "User ID must not be blank")
     @Column("user_id")
     private String userId;
@@ -122,7 +127,6 @@ public class Transactions implements Persistable<UUID> {
     // ========== Persistable Implementation ==========
     
     @Override
-    @JsonIgnore
     public UUID getId() {
         return id;
     }
@@ -131,6 +135,11 @@ public class Transactions implements Persistable<UUID> {
     @JsonIgnore
     @Transient
     public boolean isNew() {
-        return id == null;
+        return isNew;
+    }
+
+    @JsonIgnore
+    public void markPersisted() {
+        this.isNew = false;
     }
 }

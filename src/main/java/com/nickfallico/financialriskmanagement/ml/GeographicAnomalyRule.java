@@ -35,58 +35,49 @@ public class GeographicAnomalyRule implements FraudRule {
             return Mono.just(Optional.empty());
         }
 
-        // Check for excessive country hopping FIRST (account compromise indicator)
-        // This check should happen regardless of whether current country is new
-        Long distinctCountries = transactionRepository
-            .countDistinctCountries(userId)
-            .block();
+        return transactionRepository.countDistinctCountries(userId)
+            .defaultIfEmpty(0L)
+            .flatMap(distinctCountries -> {
+                if (distinctCountries > MAX_DISTINCT_COUNTRIES) {
+                    log.warn("Geographic anomaly: User {} has used {} distinct countries (max: {})",
+                        userId, distinctCountries, MAX_DISTINCT_COUNTRIES);
 
-        if (distinctCountries != null && distinctCountries > MAX_DISTINCT_COUNTRIES) {
-            log.warn("Geographic anomaly: User {} has used {} distinct countries (max: {})",
-                userId, distinctCountries, MAX_DISTINCT_COUNTRIES);
+                    return Mono.just(Optional.of(new FraudViolation(
+                        "GEOGRAPHIC_COUNTRY_HOPPING",
+                        String.format("Excessive country usage: %d distinct countries (max: %d)",
+                            distinctCountries, MAX_DISTINCT_COUNTRIES),
+                        0.65 // Moderate-high risk
+                    )));
+                }
 
-            return Mono.just(Optional.of(new FraudViolation(
-                "GEOGRAPHIC_COUNTRY_HOPPING",
-                String.format("Excessive country usage: %d distinct countries (max: %d)",
-                    distinctCountries, MAX_DISTINCT_COUNTRIES),
-                0.65 // Moderate-high risk
-            )));
-        }
+                return transactionRepository.hasUserTransactedInCountry(userId, country)
+                    .defaultIfEmpty(false)
+                    .map(hasTransactedInCountry -> {
+                        if (!hasTransactedInCountry) {
+                            if (profile.isNewUser()) {
+                                log.warn("Geographic anomaly: New user {} transacting from country {} for first time",
+                                    userId, country);
 
-        // Check if user has ever transacted from this country
-        Boolean hasTransactedInCountry = transactionRepository
-            .hasUserTransactedInCountry(userId, country)
-            .block();
+                                return Optional.of(new FraudViolation(
+                                    "GEOGRAPHIC_NEW_USER_NEW_COUNTRY",
+                                    String.format("New user transacting from new country: %s", country),
+                                    0.75 // High risk - common account takeover pattern
+                                ));
+                            }
 
-        if (hasTransactedInCountry == null || !hasTransactedInCountry) {
-            // First-time country usage
+                            if (profile.isEstablished()) {
+                                log.info("Geographic anomaly: Established user {} transacting from new country {}",
+                                    userId, country);
 
-            // Higher risk if user is new (account takeover pattern)
-            if (profile.isNewUser()) {
-                log.warn("Geographic anomaly: New user {} transacting from country {} for first time",
-                    userId, country);
-
-                return Mono.just(Optional.of(new FraudViolation(
-                    "GEOGRAPHIC_NEW_USER_NEW_COUNTRY",
-                    String.format("New user transacting from new country: %s", country),
-                    0.75 // High risk - common account takeover pattern
-                )));
-            }
-
-            // Moderate risk for established users trying new country
-            if (profile.isEstablished()) {
-                log.info("Geographic anomaly: Established user {} transacting from new country {}",
-                    userId, country);
-
-                return Mono.just(Optional.of(new FraudViolation(
-                    "GEOGRAPHIC_NEW_COUNTRY",
-                    String.format("First transaction from country: %s", country),
-                    0.5 // Moderate risk - could be legitimate travel
-                )));
-            }
-        }
-
-        // No geographic anomalies detected
-        return Mono.just(Optional.empty());
+                                return Optional.of(new FraudViolation(
+                                    "GEOGRAPHIC_NEW_COUNTRY",
+                                    String.format("First transaction from country: %s", country),
+                                    0.5 // Moderate risk - could be legitimate travel
+                                ));
+                            }
+                        }
+                        return Optional.empty();
+                    });
+            });
     }
 }

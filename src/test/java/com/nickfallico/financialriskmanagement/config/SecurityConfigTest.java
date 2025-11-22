@@ -96,7 +96,7 @@ public class SecurityConfigTest {
                 "\"isInternational\":false}")
             .exchange()
             // Should not get CSRF error (403 for CSRF would indicate CSRF is enabled)
-            .expectStatus().is4xxClientError(); // 400 for validation, not 403 for CSRF
+            .expectStatus().is2xxSuccessful();
     }
 
     @Test

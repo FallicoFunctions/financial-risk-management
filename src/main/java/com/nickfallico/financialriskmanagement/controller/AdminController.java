@@ -7,8 +7,10 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.Collections;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -81,12 +83,18 @@ public class AdminController {
                         (e1, e2) -> e1.getSequenceNumber() > e2.getSequenceNumber() ? e1 : e2
                     ));
 
-                List<String> transactionIds = new ArrayList<>(latestFraudByTransaction.keySet());
+                List<UUID> transactionIds = latestFraudByTransaction.keySet().stream()
+                    .map(this::safeParseUuid)
+                    .flatMap(Optional::stream)
+                    .collect(Collectors.toList());
+
+                if (transactionIds.isEmpty()) {
+                    log.warn("No valid transaction IDs found among fraud events");
+                    return Mono.just(ResponseEntity.ok(Collections.<FlaggedTransactionDTO>emptyList()));
+                }
 
                 return transactionRepository.findAllById(
-                    transactionIds.stream()
-                        .map(UUID::fromString)
-                        .collect(Collectors.toList())
+                    transactionIds
                 )
                 .collectList()
                 .map(transactions -> {
@@ -104,6 +112,15 @@ public class AdminController {
                 log.error("Failed to retrieve flagged transactions", error);
                 meterRegistry.counter("api.admin.flagged_transactions.errors").increment();
             });
+    }
+
+    private Optional<UUID> safeParseUuid(String id) {
+        try {
+            return Optional.of(UUID.fromString(id));
+        } catch (IllegalArgumentException ex) {
+            log.warn("Skipping invalid transaction aggregate id: {}", id);
+            return Optional.empty();
+        }
     }
 
     @Operation(
