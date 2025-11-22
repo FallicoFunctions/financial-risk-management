@@ -10,6 +10,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
@@ -32,14 +36,15 @@ import reactor.core.publisher.Mono;
 @RequestMapping("/api/v1/health")
 @Slf4j
 @RequiredArgsConstructor
+@Tag(name = "Health & Monitoring", description = "Health checks and system status")
 public class HealthController {
 
     private final DatabaseClient databaseClient;
 
-    /**
-     * Basic health check - used by load balancers and Kubernetes.
-     * Returns 200 OK if the application is running.
-     */
+    @Operation(summary = "Basic health check", description = "Returns application health status. Used by load balancers and monitoring systems.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Application is healthy")
+    })
     @GetMapping
     public Mono<ResponseEntity<Map<String, Object>>> health() {
         Map<String, Object> response = new HashMap<>();

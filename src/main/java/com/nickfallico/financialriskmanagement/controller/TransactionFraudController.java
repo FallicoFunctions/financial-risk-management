@@ -22,6 +22,13 @@ import com.nickfallico.financialriskmanagement.model.Transactions;
 import com.nickfallico.financialriskmanagement.repository.TransactionRepository;
 
 import io.micrometer.core.instrument.MeterRegistry;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
@@ -30,15 +37,27 @@ import reactor.core.publisher.Mono;
 @RequestMapping("/api/transactions")
 @RequiredArgsConstructor
 @Slf4j
+@Tag(name = "Transactions", description = "Transaction creation and querying endpoints")
 public class TransactionFraudController {
 
     private final EventLogRepository eventLogRepository;
     private final TransactionRepository transactionRepository;
     private final MeterRegistry meterRegistry;
 
+    @Operation(
+        summary = "Get transaction status",
+        description = "Retrieves comprehensive status of a transaction including fraud assessment, risk level, " +
+            "processing status (APPROVED/UNDER_REVIEW/BLOCKED), and all fraud-related events."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Transaction status retrieved successfully",
+            content = @Content(schema = @Schema(implementation = TransactionStatusDTO.class))),
+        @ApiResponse(responseCode = "404", description = "Transaction not found"),
+        @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
     @GetMapping("/{transactionId}")
     public Mono<ResponseEntity<TransactionStatusDTO>> getTransactionStatus(
-        @PathVariable UUID transactionId
+        @Parameter(description = "Transaction ID", required = true) @PathVariable UUID transactionId
     ) {
         log.info("Fetching transaction status for: {}", transactionId);
         meterRegistry.counter("api.transaction_status.requests").increment();
@@ -71,9 +90,18 @@ public class TransactionFraudController {
             });
     }
 
+    @Operation(
+        summary = "Get transaction fraud events",
+        description = "Retrieves all fraud-related events for a specific transaction in chronological order. " +
+            "Includes FRAUD_DETECTED, FRAUD_CLEARED, TRANSACTION_BLOCKED, and HIGH_RISK_ALERT events."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Fraud events retrieved successfully"),
+        @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
     @GetMapping("/{transactionId}/fraud-events")
     public Mono<ResponseEntity<List<FraudEventDTO>>> getTransactionFraudEvents(
-        @PathVariable String transactionId
+        @Parameter(description = "Transaction ID", required = true) @PathVariable String transactionId
     ) {
         log.info("Fetching fraud events for transaction: {}", transactionId);
         meterRegistry.counter("api.transaction_fraud_events.requests").increment();

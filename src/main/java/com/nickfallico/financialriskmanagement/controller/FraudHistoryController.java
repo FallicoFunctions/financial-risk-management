@@ -20,6 +20,13 @@ import com.nickfallico.financialriskmanagement.eventstore.model.EventLog;
 import com.nickfallico.financialriskmanagement.eventstore.repository.EventLogRepository;
 
 import io.micrometer.core.instrument.MeterRegistry;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
@@ -28,16 +35,28 @@ import reactor.core.publisher.Mono;
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
 @Slf4j
+@Tag(name = "Fraud Detection", description = "Fraud event history and monitoring")
 public class FraudHistoryController {
 
     private final EventLogRepository eventLogRepository;
     private final MeterRegistry meterRegistry;
 
+    @Operation(
+        summary = "Get fraud history",
+        description = "Retrieves paginated fraud event history for a user. Returns fraud detected events, cleared events, " +
+            "blocked transactions, and high-risk alerts with aggregated statistics by event type and risk level."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Fraud history retrieved successfully",
+            content = @Content(schema = @Schema(implementation = FraudHistoryResponseDTO.class))),
+        @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
     @GetMapping("/{userId}/fraud-history")
     public Mono<ResponseEntity<FraudHistoryResponseDTO>> getFraudHistory(
-        @PathVariable String userId,
-        @RequestParam(defaultValue = "0") int page,
-        @RequestParam(defaultValue = "20") int size,
+        @Parameter(description = "User ID", required = true) @PathVariable String userId,
+        @Parameter(description = "Page number (0-based)") @RequestParam(defaultValue = "0") int page,
+        @Parameter(description = "Page size (max 100)") @RequestParam(defaultValue = "20") int size,
+        @Parameter(description = "Filter by event type (FRAUD_DETECTED, FRAUD_CLEARED, TRANSACTION_BLOCKED, HIGH_RISK_ALERT)")
         @RequestParam(required = false) String eventType
     ) {
         log.info("Fetching fraud history for user: {}, page: {}, size: {}, eventType: {}",
