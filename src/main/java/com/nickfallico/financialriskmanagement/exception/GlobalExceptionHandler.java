@@ -15,6 +15,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.support.WebExchangeBindException;
+import org.springframework.web.reactive.resource.NoResourceFoundException;
+import org.springframework.web.server.UnsupportedMediaTypeStatusException;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
@@ -106,6 +108,54 @@ public class GlobalExceptionHandler {
         );
         
         return new ResponseEntity<>(error, ex.getStatus());
+    }
+
+    // IllegalArgumentException handler (e.g., invalid UUID format)
+    @ExceptionHandler(IllegalArgumentException.class)
+    public Mono<ResponseEntity<ErrorResponse>> handleIllegalArgumentException(IllegalArgumentException ex) {
+        String errorId = generateErrorId();
+        logger.error("Illegal Argument Error [ErrorID: {}]: {}", errorId, ex.getMessage(), ex);
+
+        ErrorResponse errorResponse = new ErrorResponse(
+            "INVALID_ARGUMENT",
+            ex.getMessage(),
+            errorId,
+            Instant.now()
+        );
+
+        return Mono.just(new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST));
+    }
+
+    // 404 Not Found handler
+    @ExceptionHandler(NoResourceFoundException.class)
+    public Mono<ResponseEntity<ErrorResponse>> handleNoResourceFoundException(NoResourceFoundException ex) {
+        String errorId = generateErrorId();
+        logger.error("Resource Not Found [ErrorID: {}]: {}", errorId, ex.getMessage());
+
+        ErrorResponse errorResponse = new ErrorResponse(
+            "RESOURCE_NOT_FOUND",
+            ex.getMessage(),
+            errorId,
+            Instant.now()
+        );
+
+        return Mono.just(new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND));
+    }
+
+    // 415 Unsupported Media Type handler
+    @ExceptionHandler(UnsupportedMediaTypeStatusException.class)
+    public Mono<ResponseEntity<ErrorResponse>> handleUnsupportedMediaTypeException(UnsupportedMediaTypeStatusException ex) {
+        String errorId = generateErrorId();
+        logger.error("Unsupported Media Type [ErrorID: {}]: {}", errorId, ex.getMessage());
+
+        ErrorResponse errorResponse = new ErrorResponse(
+            "UNSUPPORTED_MEDIA_TYPE",
+            ex.getMessage(),
+            errorId,
+            Instant.now()
+        );
+
+        return Mono.just(new ResponseEntity<>(errorResponse, HttpStatus.UNSUPPORTED_MEDIA_TYPE));
     }
 
     // Fallback handler for any unexpected exceptions
