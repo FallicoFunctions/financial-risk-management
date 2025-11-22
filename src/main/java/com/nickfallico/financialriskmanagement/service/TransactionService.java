@@ -22,11 +22,13 @@ import reactor.core.publisher.Mono;
 public class TransactionService {
     private final TransactionRepository transactionRepository;
     private final MeterRegistry meterRegistry;
+    private final MetricsService metricsService;
 
     // Create a new transaction
     public Mono<Transactions> createTransaction(@Valid TransactionDTO transactionDTO) {
         Timer.Sample sample = Timer.start(meterRegistry);
-        
+        long startTime = System.currentTimeMillis();
+
         Transactions transaction = Transactions.builder()
             .id(UUID.randomUUID())
             .userId(transactionDTO.getUserId())
@@ -41,13 +43,23 @@ public class TransactionService {
 
         return transactionRepository.save(transaction)
             .doOnSuccess(savedTransaction -> {
-                sample.stop(meterRegistry.timer("create_transaction_time", 
+                // Record traditional metrics
+                sample.stop(meterRegistry.timer("create_transaction_time",
                     "merchant_category", savedTransaction.getMerchantCategory()));
-                
-                meterRegistry.counter("create_transaction_count", 
+
+                meterRegistry.counter("create_transaction_count",
                     "merchant_category", savedTransaction.getMerchantCategory(),
                     "is_international", String.valueOf(savedTransaction.getIsInternational()))
                     .increment();
+
+                // Record business metrics
+                long duration = System.currentTimeMillis() - startTime;
+                metricsService.recordTransactionProcessingDuration(duration);
+                metricsService.recordTransactionProcessed();
+                metricsService.recordTransactionByType(
+                    savedTransaction.getTransactionType() != null ?
+                        savedTransaction.getTransactionType().name() : "UNKNOWN"
+                );
             });
     }
 

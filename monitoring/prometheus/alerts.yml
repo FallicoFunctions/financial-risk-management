@@ -119,3 +119,87 @@ groups:
         annotations:
           summary: "Event replay is taking too long"
           description: "Event replay duration is {{ $value }}s (threshold: 60s)"
+
+  # Business Metrics Alerts
+  - name: business_metrics
+    interval: 30s
+    rules:
+      - alert: HighFraudRate
+        expr: fraud_detection_rate > 5
+        for: 10m
+        labels:
+          severity: warning
+          component: fraud-detection
+        annotations:
+          summary: "High fraud detection rate"
+          description: "Fraud detection rate is {{ $value }}% (threshold: 5%). Potential attack or system issue."
+
+      - alert: CriticalFraudRate
+        expr: fraud_detection_rate > 15
+        for: 5m
+        labels:
+          severity: critical
+          component: fraud-detection
+        annotations:
+          summary: "CRITICAL: Extremely high fraud detection rate"
+          description: "Fraud detection rate is {{ $value }}% (threshold: 15%). Investigate immediately!"
+
+      - alert: HighRiskScoreAverage
+        expr: risk_score_average > 70
+        for: 15m
+        labels:
+          severity: warning
+          component: risk-assessment
+        annotations:
+          summary: "High average risk score detected"
+          description: "Average risk score is {{ $value }} (threshold: 70). Elevated fraud activity."
+
+      - alert: TransactionVolumeSpike
+        expr: rate(transactions_processed_total[5m]) > 100
+        for: 5m
+        labels:
+          severity: info
+          component: transaction-service
+        annotations:
+          summary: "Transaction volume spike detected"
+          description: "Processing {{ $value }} transactions/sec (normal: < 100/sec)"
+
+      - alert: HighTransactionBlockRate
+        expr: (rate(transactions_blocked_total[10m]) / rate(transactions_processed_total[10m])) * 100 > 20
+        for: 10m
+        labels:
+          severity: warning
+          component: fraud-detection
+        annotations:
+          summary: "High transaction block rate"
+          description: "{{ $value }}% of transactions are being blocked (threshold: 20%)"
+
+      - alert: SlowFraudDetection
+        expr: histogram_quantile(0.95, rate(fraud_detection_duration_seconds_bucket[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+          component: fraud-detection
+        annotations:
+          summary: "Slow fraud detection performance"
+          description: "95th percentile fraud detection time is {{ $value }}s (threshold: 1s)"
+
+      - alert: SlowTransactionProcessing
+        expr: histogram_quantile(0.95, rate(transaction_processing_duration_seconds_bucket[5m])) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          component: transaction-service
+        annotations:
+          summary: "Slow transaction processing"
+          description: "95th percentile transaction processing time is {{ $value }}s (threshold: 0.5s)"
+
+      - alert: FrequentRuleViolations
+        expr: sum(rate(fraud_rule_violations_total[5m])) by (rule_id) > 10
+        for: 5m
+        labels:
+          severity: info
+          component: fraud-detection
+        annotations:
+          summary: "Frequent violations of fraud rule {{ $labels.rule_id }}"
+          description: "Rule {{ $labels.rule_id }} is triggering {{ $value }} times/sec"
