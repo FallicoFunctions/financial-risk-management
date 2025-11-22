@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -18,8 +20,6 @@ import org.springframework.web.bind.support.WebExchangeBindException;
 import org.springframework.web.reactive.resource.NoResourceFoundException;
 import org.springframework.web.server.UnsupportedMediaTypeStatusException;
 
-import jakarta.validation.ConstraintViolation;
-import jakarta.validation.ConstraintViolationException;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import reactor.core.publisher.Mono;
@@ -32,14 +32,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleFraudDetectionException(FraudDetectionException ex) {
         String errorId = generateErrorId();
         logger.error("Fraud Detection Exception [ErrorID: {}]: {}", errorId, ex.getMessage(), ex);
-        
+
         ErrorResponse error = new ErrorResponse(
             "FRAUD_DETECTED",
             "Potential fraudulent activity detected",
             errorId,
             Instant.now()
         );
-        
+
         return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
     }
 
@@ -47,14 +47,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleRiskManagementException(RiskManagementException ex) {
         String errorId = generateErrorId();
         logger.error("Risk Management Exception [ErrorID: {}]: {}", errorId, ex.getMessage(), ex);
-        
+
         ErrorResponse error = new ErrorResponse(
             ex.getErrorCode(),
             ex.getMessage(),
             errorId,
             Instant.now()
         );
-        
+
         return new ResponseEntity<>(error, ex.getStatus());
     }
 
@@ -84,14 +84,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleTransactionValidationException(TransactionValidationException ex) {
         String errorId = generateErrorId();
         logger.error("Transaction Validation Error [ErrorID: {}]: {}", errorId, ex.getMessage(), ex);
-        
+
         ErrorResponse error = new ErrorResponse(
             ex.getErrorCode(),
             ex.getMessage(),
             errorId,
             Instant.now()
         );
-        
+
         return new ResponseEntity<>(error, ex.getStatus());
     }
 
@@ -99,15 +99,60 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleRiskAssessmentException(RiskAssessmentException ex) {
         String errorId = generateErrorId();
         logger.error("Risk Assessment Error [ErrorID: {}]: {}", errorId, ex.getMessage(), ex);
-        
+
         ErrorResponse error = new ErrorResponse(
             ex.getErrorCode(),
             ex.getMessage(),
             errorId,
             Instant.now()
         );
-        
+
         return new ResponseEntity<>(error, ex.getStatus());
+    }
+
+    // WebFlux validation exception handler
+    @ExceptionHandler(WebExchangeBindException.class)
+    public Mono<ResponseEntity<ErrorResponse>> handleWebExchangeBindException(WebExchangeBindException ex) {
+        String errorId = generateErrorId();
+        List<String> errors = ex.getBindingResult()
+            .getFieldErrors()
+            .stream()
+            .map(FieldError::getDefaultMessage)
+            .collect(Collectors.toList());
+
+        logger.error("Validation Error [ErrorID: {}]: {}", errorId, errors);
+
+        ErrorResponse errorResponse = new ErrorResponse(
+            "VALIDATION_ERROR",
+            "Validation failed",
+            errorId,
+            Instant.now(),
+            errors
+        );
+
+        return Mono.just(new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST));
+    }
+
+    // Method parameter validation exception handler
+    @ExceptionHandler(ConstraintViolationException.class)
+    public Mono<ResponseEntity<ErrorResponse>> handleConstraintViolationException(ConstraintViolationException ex) {
+        String errorId = generateErrorId();
+        List<String> errors = ex.getConstraintViolations()
+            .stream()
+            .map(ConstraintViolation::getMessage)
+            .collect(Collectors.toList());
+
+        logger.error("Constraint Violation [ErrorID: {}]: {}", errorId, errors);
+
+        ErrorResponse errorResponse = new ErrorResponse(
+            "VALIDATION_ERROR",
+            "Validation failed",
+            errorId,
+            Instant.now(),
+            errors
+        );
+
+        return Mono.just(new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST));
     }
 
     // IllegalArgumentException handler (e.g., invalid UUID format)
@@ -163,14 +208,14 @@ public class GlobalExceptionHandler {
     public Mono<ResponseEntity<ErrorResponse>> handleUnexpectedException(Exception ex) {
         String errorId = generateErrorId();
         logger.error("Unexpected Error [ErrorID: {}]: Unhandled exception", errorId, ex);
-        
+
         ErrorResponse error = new ErrorResponse(
             "INTERNAL_SERVER_ERROR",
             "An unexpected error occurred",
             errorId,
             Instant.now()
         );
-        
+
         return Mono.just(new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR));
     }
 
@@ -196,48 +241,5 @@ public class GlobalExceptionHandler {
             this.timestamp = timestamp;
             this.details = Collections.emptyList();
         }
-    }
-
-    @ExceptionHandler(WebExchangeBindException.class)
-    public Mono<ResponseEntity<ErrorResponse>> handleWebExchangeBindException(WebExchangeBindException ex) {
-        String errorId = generateErrorId();
-        List<String> errors = ex.getBindingResult()
-            .getFieldErrors()
-            .stream()
-            .map(FieldError::getDefaultMessage)
-            .collect(Collectors.toList());
-
-        logger.error("Validation Error [ErrorID: {}]: {}", errorId, errors);
-
-        ErrorResponse errorResponse = new ErrorResponse(
-            "VALIDATION_ERROR",
-            "Validation failed",
-            errorId,
-            Instant.now(),
-            errors
-        );
-
-        return Mono.just(new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST));
-    }
-
-    @ExceptionHandler(ConstraintViolationException.class)
-    public Mono<ResponseEntity<ErrorResponse>> handleConstraintViolationException(ConstraintViolationException ex) {
-        String errorId = generateErrorId();
-        List<String> errors = ex.getConstraintViolations()
-            .stream()
-            .map(ConstraintViolation::getMessage)
-            .collect(Collectors.toList());
-
-        logger.error("Constraint Violation [ErrorID: {}]: {}", errorId, errors);
-
-        ErrorResponse errorResponse = new ErrorResponse(
-            "VALIDATION_ERROR",
-            "Validation failed",
-            errorId,
-            Instant.now(),
-            errors
-        );
-
-        return Mono.just(new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST));
     }
 }

@@ -24,9 +24,10 @@ import java.util.stream.Collectors;
 @Slf4j
 @RequiredArgsConstructor
 public class FraudDetectionService {
-    
+
     private final FraudRuleEngine fraudRuleEngine;
     private final MeterRegistry meterRegistry;
+    private final MetricsService metricsService;
     
     /**
      * Assess fraud probability for transaction (reactive).
@@ -103,23 +104,48 @@ public class FraudDetectionService {
         List<FraudRule.FraudViolation> violations,
         double fraudProbability,
         FraudRuleEngine.FraudAction action) {
-        
-        sample.stop(meterRegistry.timer(
+
+        // Record fraud detection duration
+        Timer timer = sample.stop(meterRegistry.timer(
             "fraud_assessment_time",
             "merchant_category", String.valueOf(tx.getMerchantCategory()),
             "action", action.name()
         ));
-        
+        metricsService.recordFraudDetectionDuration((long) timer.totalTime(java.util.concurrent.TimeUnit.MILLISECONDS));
+
+        // Record violation counts
         meterRegistry.counter(
             "fraud_violations_total",
             "count", String.valueOf(violations.size()),
             "action", action.name()
         ).increment();
-        
+
+        // Record fraud probability
         meterRegistry.gauge(
             "fraud_probability",
             fraudProbability
         );
+
+        // Record business metrics using MetricsService
+        if (!violations.isEmpty()) {
+            metricsService.recordFraudDetected(action.name());
+
+            // Record each rule violation
+            violations.forEach(v -> metricsService.recordRuleViolation(v.ruleId()));
+        }
+
+        // Record risk score
+        metricsService.recordRiskScore(fraudProbability);
+
+        // Record action-specific metrics
+        switch (action) {
+            case BLOCK -> metricsService.recordTransactionBlocked();
+            case REVIEW -> {
+                metricsService.recordHighRiskTransaction();
+                metricsService.recordFraudDetected();
+            }
+            case APPROVE -> metricsService.recordTransactionApproved();
+        }
     }
     
     private void logAssessment(
