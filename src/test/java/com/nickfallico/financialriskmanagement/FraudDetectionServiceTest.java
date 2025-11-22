@@ -27,6 +27,7 @@ import com.nickfallico.financialriskmanagement.model.ImmutableUserRiskProfile;
 import com.nickfallico.financialriskmanagement.model.MerchantCategoryFrequency;
 import com.nickfallico.financialriskmanagement.model.Transactions;
 import com.nickfallico.financialriskmanagement.service.FraudDetectionService;
+import com.nickfallico.financialriskmanagement.service.MetricsService;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -39,13 +40,15 @@ class FraudDetectionServiceTest {
     private FraudRuleEngine fraudRuleEngine;
 
     private MeterRegistry meterRegistry;
+    private MetricsService metricsService;
 
     private FraudDetectionService fraudDetectionService;
 
     @BeforeEach
     void setUp() {
         meterRegistry = new SimpleMeterRegistry();
-        fraudDetectionService = new FraudDetectionService(fraudRuleEngine, meterRegistry);
+        metricsService = new MetricsService(meterRegistry);
+        fraudDetectionService = new FraudDetectionService(fraudRuleEngine, meterRegistry, metricsService);
     }
 
     @Test
