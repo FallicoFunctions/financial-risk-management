@@ -5,10 +5,11 @@ import java.time.Instant;
 import java.util.UUID;
 
 import org.springframework.data.annotation.Id;
-import org.springframework.data.relational.core.mapping.Column;
-import org.springframework.data.relational.core.mapping.Table;
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.domain.Persistable;
+import org.springframework.data.relational.core.mapping.Column;
+import org.springframework.data.relational.core.mapping.Table;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
@@ -30,9 +31,6 @@ public class Transactions implements Persistable<UUID> {
 
     @Id
     private UUID id;
-
-    @Transient
-    private boolean isNew = true;
 
     @NotBlank(message = "User ID must not be blank")
     @Column("user_id")
@@ -121,6 +119,8 @@ public class Transactions implements Persistable<UUID> {
         return EARTH_RADIUS_KM * c;
     }
 
+    // ========== Persistable Implementation ==========
+    
     @Override
     @JsonIgnore
     public UUID getId() {
@@ -129,11 +129,8 @@ public class Transactions implements Persistable<UUID> {
 
     @Override
     @JsonIgnore
+    @Transient
     public boolean isNew() {
-        return isNew || id == null;
-    }
-
-    public void setNew(boolean isNew) {
-        this.isNew = isNew;
+        return id == null;
     }
 }
