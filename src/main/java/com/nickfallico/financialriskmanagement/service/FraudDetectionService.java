@@ -106,13 +106,14 @@ public class FraudDetectionService {
         FraudRuleEngine.FraudAction action) {
 
         // Record fraud detection duration
-        Timer timer = meterRegistry.timer(
-            "fraud_assessment_time",
-            "merchant_category", String.valueOf(tx.getMerchantCategory()),
-            "action", action.name()
+        long durationNanos = sample.stop(
+            meterRegistry.timer(
+                "fraud_assessment_time",
+                "merchant_category", String.valueOf(tx.getMerchantCategory()),
+                "action", action.name()
+            )
         );
-        long durationNanos = sample.stop(timer);
-        metricsService.recordFraudDetectionDuration(durationNanos / 1_000_000); // Convert nanos to millis
+        metricsService.recordFraudDetectionDuration(durationNanos / 1_000_000); // nanos -> millis
 
         // Record violation counts
         meterRegistry.counter(
@@ -146,10 +147,8 @@ public class FraudDetectionService {
                 metricsService.recordFraudDetected();
             }
             case APPROVE -> metricsService.recordTransactionApproved();
-            case MONITOR -> {
-                // MONITOR action - track for analysis but don't block
-                metricsService.recordHighRiskTransaction();
-            }
+            case MONITOR -> metricsService.recordHighRiskTransaction();
+            default -> { }
         }
     }
     
