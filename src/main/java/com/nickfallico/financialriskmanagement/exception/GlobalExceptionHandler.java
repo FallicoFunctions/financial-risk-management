@@ -14,7 +14,10 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.support.WebExchangeBindException;
 
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import reactor.core.publisher.Mono;
@@ -143,5 +146,48 @@ public class GlobalExceptionHandler {
             this.timestamp = timestamp;
             this.details = Collections.emptyList();
         }
+    }
+
+    @ExceptionHandler(WebExchangeBindException.class)
+    public Mono<ResponseEntity<ErrorResponse>> handleWebExchangeBindException(WebExchangeBindException ex) {
+        String errorId = generateErrorId();
+        List<String> errors = ex.getBindingResult()
+            .getFieldErrors()
+            .stream()
+            .map(FieldError::getDefaultMessage)
+            .collect(Collectors.toList());
+
+        logger.error("Validation Error [ErrorID: {}]: {}", errorId, errors);
+
+        ErrorResponse errorResponse = new ErrorResponse(
+            "VALIDATION_ERROR",
+            "Validation failed",
+            errorId,
+            Instant.now(),
+            errors
+        );
+
+        return Mono.just(new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST));
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public Mono<ResponseEntity<ErrorResponse>> handleConstraintViolationException(ConstraintViolationException ex) {
+        String errorId = generateErrorId();
+        List<String> errors = ex.getConstraintViolations()
+            .stream()
+            .map(ConstraintViolation::getMessage)
+            .collect(Collectors.toList());
+
+        logger.error("Constraint Violation [ErrorID: {}]: {}", errorId, errors);
+
+        ErrorResponse errorResponse = new ErrorResponse(
+            "VALIDATION_ERROR",
+            "Validation failed",
+            errorId,
+            Instant.now(),
+            errors
+        );
+
+        return Mono.just(new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST));
     }
 }
