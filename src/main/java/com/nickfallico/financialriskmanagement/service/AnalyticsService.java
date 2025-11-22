@@ -4,7 +4,9 @@ import java.math.BigDecimal;
 
 import org.springframework.stereotype.Service;
 
+import com.nickfallico.financialriskmanagement.kafka.event.HighRiskUserIdentifiedEvent;
 import com.nickfallico.financialriskmanagement.kafka.event.TransactionCreatedEvent;
+import com.nickfallico.financialriskmanagement.kafka.event.UserProfileUpdatedEvent;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
@@ -130,11 +132,117 @@ public class AnalyticsService {
     private boolean isAnomalousTransaction(TransactionCreatedEvent event) {
         // Simplified anomaly detection
         // In production, this would use more sophisticated algorithms
-        
+
         BigDecimal largeAmountThreshold = new BigDecimal("10000");
         boolean isLargeAmount = event.getAmount().compareTo(largeAmountThreshold) > 0;
-        
+
         // Flag large international transactions as potentially anomalous
         return isLargeAmount && Boolean.TRUE.equals(event.getIsInternational());
+    }
+
+    /**
+     * Process high-risk user analytics for ML training and pattern detection.
+     */
+    public Mono<Void> processHighRiskUserAnalytics(HighRiskUserIdentifiedEvent event) {
+        return Mono.fromRunnable(() -> {
+            // Record high-risk user metrics
+            meterRegistry.counter("analytics.high_risk_users.identified",
+                "severity", event.getAlertSeverity(),
+                "recommended_action", event.getRecommendedAction()
+            ).increment();
+
+            // Track risk score distribution
+            meterRegistry.summary("analytics.user_risk_score.distribution",
+                "severity", event.getAlertSeverity()
+            ).record(event.getOverallRiskScore());
+
+            // Track high-risk transaction ratio
+            if (event.getTotalTransactions() != null && event.getTotalTransactions() > 0) {
+                double highRiskRatio = (double) event.getHighRiskTransactions() / event.getTotalTransactions();
+                meterRegistry.gauge("analytics.user.high_risk_transaction_ratio",
+                    highRiskRatio
+                );
+            }
+
+            // Track international transaction patterns
+            meterRegistry.counter("analytics.high_risk_users.international_activity",
+                "has_international", String.valueOf(event.getInternationalTransactions() > 0)
+            ).increment();
+
+            // Log risk factors for pattern analysis
+            if (event.getRiskFactors() != null && !event.getRiskFactors().isEmpty()) {
+                event.getRiskFactors().forEach(factor ->
+                    meterRegistry.counter("analytics.risk_factors",
+                        "factor", factor
+                    ).increment()
+                );
+            }
+
+            log.debug("High-risk user analytics processed: userId={}, riskScore={}, factors={}",
+                event.getUserId(),
+                event.getOverallRiskScore(),
+                event.getRiskFactors()
+            );
+
+            // TODO: Production implementation
+            // mlModelTrainer.updateHighRiskPatterns(event);
+            // behaviorAnalyticsEngine.analyzeHighRiskUser(event);
+            // anomalyDetector.updateRiskThresholds(event);
+        });
+    }
+
+    /**
+     * Process user profile update analytics for business intelligence.
+     */
+    public Mono<Void> processUserProfileUpdateAnalytics(UserProfileUpdatedEvent event) {
+        return Mono.fromRunnable(() -> {
+            // Record profile update metrics
+            meterRegistry.counter("analytics.user_profile.updates",
+                "update_reason", event.getUpdateReason()
+            ).increment();
+
+            // Track risk score changes
+            if (event.getPreviousOverallRiskScore() != null && event.getNewOverallRiskScore() != null) {
+                double riskChange = event.getNewOverallRiskScore() - event.getPreviousOverallRiskScore();
+
+                meterRegistry.summary("analytics.user_risk_score.change",
+                    "update_reason", event.getUpdateReason()
+                ).record(riskChange);
+
+                // Track significant risk increases
+                if (riskChange > 0.2) {
+                    meterRegistry.counter("analytics.user_risk_score.significant_increase").increment();
+                } else if (riskChange < -0.2) {
+                    meterRegistry.counter("analytics.user_risk_score.significant_decrease").increment();
+                }
+            }
+
+            // Track user transaction growth
+            if (event.getTotalTransactions() != null) {
+                meterRegistry.gauge("analytics.user.total_transactions",
+                    event.getTotalTransactions()
+                );
+            }
+
+            // Track high-risk transaction patterns
+            if (event.getHighRiskTransactions() != null) {
+                meterRegistry.gauge("analytics.user.high_risk_transactions",
+                    event.getHighRiskTransactions()
+                );
+            }
+
+            log.debug("User profile update analytics processed: userId={}, previousScore={}, newScore={}, reason={}",
+                event.getUserId(),
+                event.getPreviousOverallRiskScore(),
+                event.getNewOverallRiskScore(),
+                event.getUpdateReason()
+            );
+
+            // TODO: Production implementation
+            // userProfileCache.invalidate(event.getUserId());
+            // dashboardService.updateUserRiskMetrics(event);
+            // mlModelTrainer.checkForRetrainingTrigger(event);
+            // businessIntelligenceSystem.feedProfileUpdate(event);
+        });
     }
 }
