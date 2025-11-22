@@ -22,7 +22,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-import static org.assertj.core.assertions.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
@@ -90,9 +90,9 @@ public class UserProfileServiceTest {
 
         StepVerifier.create(userProfileService.getUserProfile(userId))
             .assertNext(profile -> {
-                assertThat(profile.getUserId()).isEqualTo(userId);
-                assertThat(profile.getOverallRiskScore()).isEqualTo(0.45);
-                assertThat(profile.getTotalTransactions()).isEqualTo(100);
+                assertEquals(userId, profile.getUserId());
+                assertEquals(0.45, profile.getOverallRiskScore());
+                assertEquals(100, profile.getTotalTransactions());
             })
             .verifyComplete();
 
@@ -109,9 +109,9 @@ public class UserProfileServiceTest {
 
         StepVerifier.create(userProfileService.getUserProfile(userId))
             .assertNext(profile -> {
-                assertThat(profile.getUserId()).isEqualTo(userId);
-                assertThat(profile.getOverallRiskScore()).isEqualTo(0.0);
-                assertThat(profile.getTotalTransactions()).isEqualTo(0);
+                assertEquals(userId, profile.getUserId());
+                assertEquals(0.0, profile.getOverallRiskScore());
+                assertEquals(0, profile.getTotalTransactions());
             })
             .verifyComplete();
 
@@ -135,7 +135,7 @@ public class UserProfileServiceTest {
 
         StepVerifier.create(userProfileService.getMerchantFrequency(userId))
             .assertNext(frequency -> {
-                assertThat(frequency.getUserId()).isEqualTo(userId);
+                assertEquals(userId, frequency.getUserId());
             })
             .verifyComplete();
 
@@ -152,7 +152,7 @@ public class UserProfileServiceTest {
 
         StepVerifier.create(userProfileService.getMerchantFrequency(userId))
             .assertNext(frequency -> {
-                assertThat(frequency.getUserId()).isEqualTo(userId);
+                assertEquals(userId, frequency.getUserId());
             })
             .verifyComplete();
     }
@@ -334,7 +334,7 @@ public class UserProfileServiceTest {
             .expectNextCount(1)
             .verifyComplete();
 
-        assertThat(meterRegistry.counter("get_user_profile_attempts").count()).isEqualTo(1.0);
+        assertEquals(1.0, meterRegistry.counter("get_user_profile_attempts").count());
     }
 
     @Test
@@ -353,7 +353,7 @@ public class UserProfileServiceTest {
         StepVerifier.create(userProfileService.updateProfileAfterTransaction(transaction))
             .verifyComplete();
 
-        assertThat(meterRegistry.counter("profile_updates").count()).isEqualTo(1.0);
+        assertEquals(1.0, meterRegistry.counter("profile_updates").count());
     }
 
     /**
