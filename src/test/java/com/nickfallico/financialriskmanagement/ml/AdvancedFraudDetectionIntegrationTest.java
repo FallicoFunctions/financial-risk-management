@@ -339,7 +339,6 @@ class AdvancedFraudDetectionIntegrationTest {
 
     private Transactions createTransaction(String userId, BigDecimal amount, Instant createdAt) {
         return Transactions.builder()
-            .id(UUID.randomUUID())
             .userId(userId)
             .amount(amount)
             .currency("USD")
@@ -361,7 +360,6 @@ class AdvancedFraudDetectionIntegrationTest {
         String city
     ) {
         return Transactions.builder()
-            .id(UUID.randomUUID())
             .userId(userId)
             .amount(amount)
             .currency("USD")
