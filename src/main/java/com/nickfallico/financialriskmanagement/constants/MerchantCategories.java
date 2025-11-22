@@ -17,7 +17,8 @@ public final class MerchantCategories {
         "GAMBLING", 
         "CRYPTO", 
         "ONLINE_SHOPPING",
-        "ADULT_ENTERTAINMENT"
+        "ADULT_ENTERTAINMENT",
+        "RETAIL"
     );
     
     public static final List<String> HIGH_RISK_CATEGORIES = Arrays.asList(
