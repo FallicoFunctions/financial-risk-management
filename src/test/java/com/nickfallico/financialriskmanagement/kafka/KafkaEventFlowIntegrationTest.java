@@ -31,7 +31,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-import static org.assertj.core.assertions.AssertThat;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * End-to-end integration tests for Kafka event flow.
@@ -143,14 +143,14 @@ public class KafkaEventFlowIntegrationTest {
             transactionRecords.poll(10, TimeUnit.SECONDS);
 
         // Verify event was consumed
-        Assertthat(record).isNotNull();
-        Assertthat(record.key()).isEqualTo(transaction.getId().toString());
+        assertNotNull(record);
+        assertEquals(transaction.getId().toString(), record.key());
 
         TransactionCreatedEvent consumedEvent = record.value();
-        Assertthat(consumedEvent.getTransactionId()).isEqualTo(transaction.getId());
-        Assertthat(consumedEvent.getUserId()).isEqualTo(transaction.getUserId());
-        Assertthat(consumedEvent.getAmount()).isEqualTo(transaction.getAmount());
-        Assertthat(consumedEvent.getCurrency()).isEqualTo(transaction.getCurrency());
+        assertEquals(transaction.getId(), consumedEvent.getTransactionId());
+        assertEquals(transaction.getUserId(), consumedEvent.getUserId());
+        assertEquals(transaction.getAmount(), consumedEvent.getAmount());
+        assertEquals(transaction.getCurrency(), consumedEvent.getCurrency());
     }
 
     @Test
@@ -178,11 +178,11 @@ public class KafkaEventFlowIntegrationTest {
         // Note: In real implementation, FraudDetectionService would publish this
         // For test purposes, we're verifying the event structure
 
-        Assertthat(event.getTransactionId()).isEqualTo(transactionId);
-        Assertthat(event.getFraudProbability()).isEqualTo(0.87);
-        Assertthat(event.getRiskLevel()).isEqualTo("HIGH");
-        Assertthat(event.getAction()).isEqualTo("REVIEW");
-        Assertthat(event.getViolatedRules()).hasSize(2);
+        assertEquals(transactionId, event.getTransactionId());
+        assertEquals(0.87, event.getFraudProbability());
+        assertEquals("HIGH", event.getRiskLevel());
+        assertEquals("REVIEW", event.getAction());
+        assertEquals(2, event.getViolatedRules().size());
     }
 
     @Test
@@ -202,9 +202,9 @@ public class KafkaEventFlowIntegrationTest {
             .eventSource("admin-service")
             .build();
 
-        Assertthat(event.getTransactionId()).isEqualTo(transactionId);
-        Assertthat(event.getClearedBy()).isEqualTo("admin_reviewer");
-        Assertthat(event.getOriginalFraudProbability()).isEqualTo(0.85);
+        assertEquals(transactionId, event.getTransactionId());
+        assertEquals("admin_reviewer", event.getClearedBy());
+        assertEquals(0.85, event.getOriginalFraudProbability());
     }
 
     @Test
@@ -225,11 +225,12 @@ public class KafkaEventFlowIntegrationTest {
             "CRITICAL"
         );
 
-        Assertthat(event.getTransactionId()).isEqualTo(transactionId);
-        Assertthat(event.getBlockReason()).isEqualTo("CRITICAL_FRAUD_THRESHOLD_EXCEEDED");
-        Assertthat(event.getSeverity()).isEqualTo("CRITICAL");
-        Assertthat(event.getFraudProbability()).isEqualTo(0.97);
-        Assertthat(event.getViolatedRules()).contains("IMPOSSIBLE_TRAVEL", "EXTREME_AMOUNT");
+        assertEquals(transactionId, event.getTransactionId());
+        assertEquals("CRITICAL_FRAUD_THRESHOLD_EXCEEDED", event.getBlockReason());
+        assertEquals("CRITICAL", event.getSeverity());
+        assertEquals(0.97, event.getFraudProbability());
+        assertTrue(event.getViolatedRules().contains("IMPOSSIBLE_TRAVEL"));
+        assertTrue(event.getViolatedRules().contains("EXTREME_AMOUNT"));
     }
 
     @Test
@@ -251,11 +252,11 @@ public class KafkaEventFlowIntegrationTest {
             .eventSource("risk-assessment-service")
             .build();
 
-        Assertthat(event.getUserId()).isEqualTo("suspicious_user");
-        Assertthat(event.getRiskScore()).isEqualTo(0.82);
-        Assertthat(event.getRiskLevel()).isEqualTo("HIGH");
-        Assertthat(event.getRiskFactors()).hasSize(2);
-        Assertthat(event.getAccountAgeDays()).isEqualTo(7);
+        assertEquals("suspicious_user", event.getUserId());
+        assertEquals(0.82, event.getRiskScore());
+        assertEquals("HIGH", event.getRiskLevel());
+        assertEquals(2, event.getRiskFactors().size());
+        assertEquals(7, event.getAccountAgeDays());
     }
 
     @Test
@@ -274,12 +275,12 @@ public class KafkaEventFlowIntegrationTest {
             triggeringTxId
         );
 
-        Assertthat(event.getUserId()).isEqualTo("test_user");
-        Assertthat(event.getPreviousOverallRiskScore()).isEqualTo(0.45);
-        Assertthat(event.getNewOverallRiskScore()).isEqualTo(0.62);
-        Assertthat(event.getTotalTransactions()).isEqualTo(128);
-        Assertthat(event.getUpdateReason()).isEqualTo("FRAUD_DETECTED");
-        Assertthat(event.getTriggeringTransactionId()).isEqualTo(triggeringTxId);
+        assertEquals("test_user", event.getUserId());
+        assertEquals(0.45, event.getPreviousOverallRiskScore());
+        assertEquals(0.62, event.getNewOverallRiskScore());
+        assertEquals(128, event.getTotalTransactions());
+        assertEquals("FRAUD_DETECTED", event.getUpdateReason());
+        assertEquals(triggeringTxId, event.getTriggeringTransactionId());
     }
 
     @Test
@@ -292,10 +293,10 @@ public class KafkaEventFlowIntegrationTest {
         TransactionCreatedEvent event = TransactionCreatedEvent.fromTransaction(transaction);
 
         // Verify event fields
-        Assertthat(event.getTransactionId()).isEqualTo(txId);
-        Assertthat(event.getEventSource()).isEqualTo("transaction-service");
-        Assertthat(event.getEventTimestamp()).isNotNull();
-        Assertthat(event.getEventId()).isNotNull();
+        assertEquals(txId, event.getTransactionId());
+        assertEquals("transaction-service", event.getEventSource());
+        assertNotNull(event.getEventTimestamp());
+        assertNotNull(event.getEventId());
     }
 
     @Test
@@ -316,10 +317,10 @@ public class KafkaEventFlowIntegrationTest {
             "REVIEW"
         );
 
-        Assertthat(event.getEventId()).isNotNull();
-        Assertthat(event.getEventTimestamp()).isNotNull();
-        Assertthat(event.getEventSource()).isEqualTo("fraud-detection-service");
-        Assertthat(event.getEventTimestamp()).isBefore(Instant.now().plus(Duration.ofSeconds(1)));
+        assertNotNull(event.getEventId());
+        assertNotNull(event.getEventTimestamp());
+        assertEquals("fraud-detection-service", event.getEventSource());
+        assertTrue(event.getEventTimestamp().isBefore(Instant.now().plus(Duration.ofSeconds(1))));
     }
 
     /**
