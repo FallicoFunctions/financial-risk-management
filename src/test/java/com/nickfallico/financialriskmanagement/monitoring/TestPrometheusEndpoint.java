@@ -1,12 +1,13 @@
 package com.nickfallico.financialriskmanagement.monitoring;
 
-import io.micrometer.prometheus.PrometheusMeterRegistry;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import io.micrometer.prometheus.PrometheusMeterRegistry;
 
 /**
  * Test-only Prometheus endpoint to ensure /actuator/prometheus is available in @SpringBootTest.

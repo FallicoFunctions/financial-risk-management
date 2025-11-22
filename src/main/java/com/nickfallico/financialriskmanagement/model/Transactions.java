@@ -5,6 +5,8 @@ import java.time.Instant;
 import java.util.UUID;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
+import org.springframework.data.domain.Persistable;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
@@ -25,10 +27,15 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Table(name = "transactions")
-public class Transactions {
+public class Transactions implements Persistable<UUID> {
 
     @Id
     private UUID id;
+
+    @Transient
+    @JsonIgnore
+    @Builder.Default
+    private boolean isNew = true;
 
     @NotBlank(message = "User ID must not be blank")
     @Column("user_id")
@@ -115,5 +122,24 @@ public class Transactions {
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
         return EARTH_RADIUS_KM * c;
+    }
+
+    // ========== Persistable Implementation ==========
+    
+    @Override
+    public UUID getId() {
+        return id;
+    }
+
+    @Override
+    @JsonIgnore
+    @Transient
+    public boolean isNew() {
+        return isNew;
+    }
+
+    @JsonIgnore
+    public void markPersisted() {
+        this.isNew = false;
     }
 }

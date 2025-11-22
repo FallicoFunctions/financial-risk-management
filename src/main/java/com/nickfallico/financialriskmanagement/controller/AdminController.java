@@ -1,5 +1,26 @@
 package com.nickfallico.financialriskmanagement.controller;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.Collections;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.nickfallico.financialriskmanagement.dto.FlaggedTransactionDTO;
 import com.nickfallico.financialriskmanagement.dto.FraudRuleDTO;
 import com.nickfallico.financialriskmanagement.dto.TransactionReviewRequestDTO;
@@ -8,25 +29,17 @@ import com.nickfallico.financialriskmanagement.eventstore.repository.EventLogRep
 import com.nickfallico.financialriskmanagement.eventstore.service.EventStoreService;
 import com.nickfallico.financialriskmanagement.model.Transactions;
 import com.nickfallico.financialriskmanagement.repository.TransactionRepository;
+
 import io.micrometer.core.instrument.MeterRegistry;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
-
-import jakarta.validation.Valid;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.*;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -70,12 +83,18 @@ public class AdminController {
                         (e1, e2) -> e1.getSequenceNumber() > e2.getSequenceNumber() ? e1 : e2
                     ));
 
-                List<String> transactionIds = new ArrayList<>(latestFraudByTransaction.keySet());
+                List<UUID> transactionIds = latestFraudByTransaction.keySet().stream()
+                    .map(this::safeParseUuid)
+                    .flatMap(Optional::stream)
+                    .collect(Collectors.toList());
+
+                if (transactionIds.isEmpty()) {
+                    log.warn("No valid transaction IDs found among fraud events");
+                    return Mono.just(ResponseEntity.ok(Collections.<FlaggedTransactionDTO>emptyList()));
+                }
 
                 return transactionRepository.findAllById(
-                    transactionIds.stream()
-                        .map(UUID::fromString)
-                        .collect(Collectors.toList())
+                    transactionIds
                 )
                 .collectList()
                 .map(transactions -> {
@@ -93,6 +112,15 @@ public class AdminController {
                 log.error("Failed to retrieve flagged transactions", error);
                 meterRegistry.counter("api.admin.flagged_transactions.errors").increment();
             });
+    }
+
+    private Optional<UUID> safeParseUuid(String id) {
+        try {
+            return Optional.of(UUID.fromString(id));
+        } catch (IllegalArgumentException ex) {
+            log.warn("Skipping invalid transaction aggregate id: {}", id);
+            return Optional.empty();
+        }
     }
 
     @Operation(

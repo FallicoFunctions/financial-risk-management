@@ -1,8 +1,18 @@
 package com.nickfallico.financialriskmanagement.kafka;
 
-import com.nickfallico.financialriskmanagement.kafka.event.*;
-import com.nickfallico.financialriskmanagement.kafka.producer.TransactionEventProducer;
-import com.nickfallico.financialriskmanagement.model.Transactions;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.math.BigDecimal;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -22,16 +32,14 @@ import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.kafka.test.utils.ContainerTestUtils;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.math.BigDecimal;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-
-import static org.junit.jupiter.api.Assertions.*;
+import com.nickfallico.financialriskmanagement.kafka.event.FraudClearedEvent;
+import com.nickfallico.financialriskmanagement.kafka.event.FraudDetectedEvent;
+import com.nickfallico.financialriskmanagement.kafka.event.HighRiskUserIdentifiedEvent;
+import com.nickfallico.financialriskmanagement.kafka.event.TransactionBlockedEvent;
+import com.nickfallico.financialriskmanagement.kafka.event.TransactionCreatedEvent;
+import com.nickfallico.financialriskmanagement.kafka.event.UserProfileUpdatedEvent;
+import com.nickfallico.financialriskmanagement.kafka.producer.TransactionEventProducer;
+import com.nickfallico.financialriskmanagement.model.Transactions;
 
 /**
  * End-to-end integration tests for Kafka event flow.

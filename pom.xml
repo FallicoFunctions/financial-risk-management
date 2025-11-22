@@ -61,6 +61,14 @@
 			<artifactId>reactor-kafka</artifactId>
 			<version>1.3.21</version>
 		</dependency>
+		
+		<!-- Scala library for EmbeddedKafka -->
+		<dependency>
+			<groupId>org.scala-lang</groupId>
+			<artifactId>scala-library</artifactId>
+			<version>2.13.12</version>
+			<scope>test</scope>
+		</dependency>
 
 		<!-- Database -->
 		<dependency>
