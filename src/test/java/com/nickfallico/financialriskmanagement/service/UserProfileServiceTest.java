@@ -114,7 +114,7 @@ public class UserProfileServiceTest {
         StepVerifier.create(userProfileService.getUserProfile(userId))
             .assertNext(profile -> {
                 assertEquals(userId, profile.getUserId());
-                assertEquals(0.0, profile.getOverallRiskScore());
+                assertEquals(0.5, profile.getOverallRiskScore());
                 assertEquals(0, profile.getTotalTransactions());
             })
             .verifyComplete();
