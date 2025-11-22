@@ -17,8 +17,10 @@ import org.springframework.kafka.support.serializer.JsonDeserializer;
 
 import com.nickfallico.financialriskmanagement.kafka.event.FraudClearedEvent;
 import com.nickfallico.financialriskmanagement.kafka.event.FraudDetectedEvent;
+import com.nickfallico.financialriskmanagement.kafka.event.HighRiskUserIdentifiedEvent;
 import com.nickfallico.financialriskmanagement.kafka.event.TransactionBlockedEvent;
 import com.nickfallico.financialriskmanagement.kafka.event.TransactionCreatedEvent;
+import com.nickfallico.financialriskmanagement.kafka.event.UserProfileUpdatedEvent;
 
 @Configuration
 @ConditionalOnProperty(name = "spring.kafka.enabled", havingValue = "true", matchIfMissing = true)
@@ -136,23 +138,77 @@ public class KafkaConsumerConfig {
      * Ensures type-safe deserialization for blocked transaction events.
      */
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, TransactionBlockedEvent> 
+    public ConcurrentKafkaListenerContainerFactory<String, TransactionBlockedEvent>
             transactionBlockedKafkaListenerContainerFactory() {
         ConcurrentKafkaListenerContainerFactory<String, TransactionBlockedEvent> factory =
             new ConcurrentKafkaListenerContainerFactory<>();
-        
-        JsonDeserializer<TransactionBlockedEvent> deserializer = 
+
+        JsonDeserializer<TransactionBlockedEvent> deserializer =
             new JsonDeserializer<>(TransactionBlockedEvent.class);
         deserializer.addTrustedPackages("*");
         deserializer.setUseTypeHeaders(false);
-        
+
         ConsumerFactory<String, TransactionBlockedEvent> consumerFactory =
             new DefaultKafkaConsumerFactory<>(
                 baseConsumerConfigs(),
                 new StringDeserializer(),
                 deserializer
             );
-        
+
+        factory.setConsumerFactory(consumerFactory);
+        factory.setConcurrency(2);
+        return factory;
+    }
+
+    /**
+     * Event-specific factory for HighRiskUserIdentifiedEvent.
+     * Ensures type-safe deserialization for high-risk user events.
+     */
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, HighRiskUserIdentifiedEvent>
+            highRiskUserKafkaListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, HighRiskUserIdentifiedEvent> factory =
+            new ConcurrentKafkaListenerContainerFactory<>();
+
+        JsonDeserializer<HighRiskUserIdentifiedEvent> deserializer =
+            new JsonDeserializer<>(HighRiskUserIdentifiedEvent.class);
+        deserializer.addTrustedPackages("*");
+        deserializer.setUseTypeHeaders(false);
+
+        ConsumerFactory<String, HighRiskUserIdentifiedEvent> consumerFactory =
+            new DefaultKafkaConsumerFactory<>(
+                baseConsumerConfigs(),
+                new StringDeserializer(),
+                deserializer
+            );
+
+        factory.setConsumerFactory(consumerFactory);
+        factory.setConcurrency(2);
+        return factory;
+    }
+
+    /**
+     * Event-specific factory for UserProfileUpdatedEvent.
+     * Ensures type-safe deserialization for user profile update events.
+     */
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, UserProfileUpdatedEvent>
+            userProfileUpdatedKafkaListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, UserProfileUpdatedEvent> factory =
+            new ConcurrentKafkaListenerContainerFactory<>();
+
+        JsonDeserializer<UserProfileUpdatedEvent> deserializer =
+            new JsonDeserializer<>(UserProfileUpdatedEvent.class);
+        deserializer.addTrustedPackages("*");
+        deserializer.setUseTypeHeaders(false);
+
+        ConsumerFactory<String, UserProfileUpdatedEvent> consumerFactory =
+            new DefaultKafkaConsumerFactory<>(
+                baseConsumerConfigs(),
+                new StringDeserializer(),
+                deserializer
+            );
+
         factory.setConsumerFactory(consumerFactory);
         factory.setConcurrency(2);
         return factory;
