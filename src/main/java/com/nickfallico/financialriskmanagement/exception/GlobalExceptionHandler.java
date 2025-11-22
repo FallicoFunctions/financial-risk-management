@@ -32,14 +32,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleFraudDetectionException(FraudDetectionException ex) {
         String errorId = generateErrorId();
         logger.error("Fraud Detection Exception [ErrorID: {}]: {}", errorId, ex.getMessage(), ex);
-        
+
         ErrorResponse error = new ErrorResponse(
             "FRAUD_DETECTED",
             "Potential fraudulent activity detected",
             errorId,
             Instant.now()
         );
-        
+
         return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
     }
 
@@ -47,14 +47,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleRiskManagementException(RiskManagementException ex) {
         String errorId = generateErrorId();
         logger.error("Risk Management Exception [ErrorID: {}]: {}", errorId, ex.getMessage(), ex);
-        
+
         ErrorResponse error = new ErrorResponse(
             ex.getErrorCode(),
             ex.getMessage(),
             errorId,
             Instant.now()
         );
-        
+
         return new ResponseEntity<>(error, ex.getStatus());
     }
 
@@ -84,14 +84,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleTransactionValidationException(TransactionValidationException ex) {
         String errorId = generateErrorId();
         logger.error("Transaction Validation Error [ErrorID: {}]: {}", errorId, ex.getMessage(), ex);
-        
+
         ErrorResponse error = new ErrorResponse(
             ex.getErrorCode(),
             ex.getMessage(),
             errorId,
             Instant.now()
         );
-        
+
         return new ResponseEntity<>(error, ex.getStatus());
     }
 
@@ -208,14 +208,14 @@ public class GlobalExceptionHandler {
     public Mono<ResponseEntity<ErrorResponse>> handleUnexpectedException(Exception ex) {
         String errorId = generateErrorId();
         logger.error("Unexpected Error [ErrorID: {}]: Unhandled exception", errorId, ex);
-        
+
         ErrorResponse error = new ErrorResponse(
             "INTERNAL_SERVER_ERROR",
             "An unexpected error occurred",
             errorId,
             Instant.now()
         );
-        
+
         return Mono.just(new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR));
     }
 
