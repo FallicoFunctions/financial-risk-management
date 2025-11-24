@@ -30,7 +30,8 @@ import lombok.NoArgsConstructor;
 public class Transactions implements Persistable<UUID> {
 
     @Id
-    private UUID id;
+    @Builder.Default
+    private UUID id = UUID.randomUUID();
 
     @Transient
     @JsonIgnore
