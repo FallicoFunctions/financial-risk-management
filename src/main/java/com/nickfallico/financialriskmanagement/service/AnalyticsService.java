@@ -1,7 +1,5 @@
 package com.nickfallico.financialriskmanagement.service;
 
-import java.math.BigDecimal;
-
 import org.springframework.stereotype.Service;
 
 import com.nickfallico.financialriskmanagement.kafka.event.HighRiskUserIdentifiedEvent;

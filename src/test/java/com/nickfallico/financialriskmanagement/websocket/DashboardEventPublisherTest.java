@@ -1,10 +1,8 @@
 package com.nickfallico.financialriskmanagement.websocket;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 
 import java.math.BigDecimal;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -20,10 +18,7 @@ import com.nickfallico.financialriskmanagement.kafka.event.TransactionBlockedEve
 import com.nickfallico.financialriskmanagement.kafka.event.TransactionCreatedEvent;
 import com.nickfallico.financialriskmanagement.kafka.event.UserProfileUpdatedEvent;
 import com.nickfallico.financialriskmanagement.websocket.message.DashboardMessage;
-import com.nickfallico.financialriskmanagement.websocket.message.FraudAlertMessage;
 import com.nickfallico.financialriskmanagement.websocket.message.MetricsSnapshotMessage;
-import com.nickfallico.financialriskmanagement.websocket.message.RiskScoreUpdateMessage;
-import com.nickfallico.financialriskmanagement.websocket.message.TransactionEventMessage;
 import com.nickfallico.financialriskmanagement.websocket.service.DashboardEventPublisher;
 
 import io.micrometer.core.instrument.MeterRegistry;

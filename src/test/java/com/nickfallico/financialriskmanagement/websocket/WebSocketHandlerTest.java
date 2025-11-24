@@ -244,10 +244,6 @@ class WebSocketHandlerTest {
     @Test
     @DisplayName("Event publisher streams should be accessible from handlers")
     void eventPublisherStreamsShouldBeAccessible() {
-        // Given
-        FraudAlertWebSocketHandler fraudHandler = new FraudAlertWebSocketHandler(
-            eventPublisher, objectMapper, meterRegistry);
-
         // Then - verify streams are not null and can be subscribed to
         assertThat(eventPublisher.getFraudAlertStream()).isNotNull();
         assertThat(eventPublisher.getTransactionEventStream()).isNotNull();
