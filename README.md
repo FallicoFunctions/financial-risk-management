@@ -2,6 +2,85 @@
 
 A production-ready, real-time fraud detection and risk management platform built with Spring Boot 3.2, demonstrating enterprise-grade architecture patterns, machine learning integration, and event-driven microservices design.
 
+---
+
+## Interview Discussion Points
+
+This section highlights key architectural decisions and trade-offs for technical discussion.
+
+### Why These Technology Choices?
+
+| Decision | Why | Alternative Considered |
+|----------|-----|------------------------|
+| **Spring WebFlux (Reactive)** | Non-blocking I/O handles high transaction throughput with fewer threads. A single instance can handle thousands of concurrent connections without thread-per-request overhead. | Spring MVC - simpler but blocks threads waiting for DB/Kafka responses |
+| **R2DBC over JPA** | Fully reactive database access. Traditional JDBC blocks threads during queries, negating WebFlux benefits. | JPA/Hibernate - more mature but blocking; would create backpressure bottlenecks |
+| **Kafka over RabbitMQ** | Kafka provides durable event log with replay capability (critical for audit trails), better horizontal scaling, and exactly-once semantics for financial data. | RabbitMQ - simpler setup but lacks native event replay and ordering guarantees |
+| **Ensemble ML (Rules + Model)** | Rules provide explainability and instant updates (no retraining); ML catches patterns rules miss. Regulators require explainable decisions. | Pure ML - higher accuracy but "black box" decisions violate GDPR Article 22 |
+| **Event Sourcing** | Financial systems require complete audit trails. Can replay events to reconstruct state at any point in time for compliance/forensics. | CRUD with audit columns - simpler but loses event history and "why" context |
+
+### Key Design Decisions Worth Discussing
+
+**1. Fire-and-Forget Pattern for Fraud Detection**
+```
+API Response Time: ~50ms (save transaction + publish event)
+Fraud Detection: Runs async after response
+```
+*Trade-off*: User gets fast response, but fraud decision happens after. Acceptable because blocking would cause 200ms+ latency, and most transactions are legitimate.
+
+**2. Why Not Pure Microservices?**
+
+This is a modular monolith by design. For a fraud detection system:
+- **Latency matters**: Inter-service calls add 10-50ms each
+- **Consistency matters**: Distributed transactions across services are complex
+- **Deployment simplicity**: Single deployment unit is easier to reason about
+
+*When to split*: If different teams owned fraud-rules vs. ML-scoring, or if scaling requirements diverged significantly.
+
+**3. Immutable User Risk Profiles**
+
+Risk profiles are computed from transaction history, not mutated incrementally:
+```java
+// Recompute from source of truth
+profile = computeFromTransactionHistory(userId);
+// NOT: profile.incrementRiskScore(0.1);
+```
+*Why*: Prevents drift, enables replay, ensures consistency. Trade-off is slightly higher compute cost.
+
+**4. WebSocket vs. Server-Sent Events (SSE)**
+
+Chose WebSocket for bidirectional capability (future: analyst can send commands back). SSE would be simpler for pure server-push but limits future extensibility.
+
+### Production Considerations
+
+**Scaling Strategy**
+- Stateless application servers (horizontal scaling)
+- Kafka partitioned by userId (ensures ordering per user)
+- Redis cluster for distributed caching
+- PostgreSQL read replicas for query load
+
+**Failure Handling**
+- Kafka consumer retries with exponential backoff
+- Dead letter queues for poison messages
+- Circuit breakers on external service calls (alerts, notifications)
+- Graceful degradation: if Redis down, compute profiles on-demand
+
+**What I'd Add for True Production**
+- Rate limiting on API endpoints
+- Request tracing (Jaeger/Zipkin integration)
+- ML model versioning and A/B testing
+- Canary deployments for rule changes
+- PII encryption at rest
+
+### Questions I Can Discuss In-Depth
+
+1. **"Walk me through a transaction's lifecycle"** - From API call through Kafka to fraud decision
+2. **"How would you scale this to 10x traffic?"** - Partitioning strategies, caching layers
+3. **"What happens if Kafka goes down?"** - Resilience patterns, circuit breakers
+4. **"How do you prevent false positives from blocking legitimate users?"** - Threshold tuning, feedback loops, model monitoring
+5. **"How would you debug a production fraud detection issue?"** - Event replay, audit logs, distributed tracing
+
+---
+
 ## Overview
 
 This platform processes financial transactions in real-time, assessing fraud risk using an ensemble approach that combines rule-based detection with probabilistic ML models. It features complete audit trails, explainable AI decisions, and real-time dashboard streaming via WebSockets.
