@@ -482,6 +482,189 @@ kafka.consumer.lag        # Consumer lag per partition
 }
 ```
 
+## Path to Production
+
+This section documents what would be required to deploy this system to a production environment. This transparency demonstrates understanding of the gap between a demonstration project and production-ready software.
+
+### Current State: What's Proven
+
+| Aspect | Status | Evidence |
+|--------|--------|----------|
+| Business Logic | Verified | 164 tests covering fraud rules, scoring, workflows |
+| API Contracts | Verified | Controller tests validate request/response shapes |
+| Kafka Integration | Verified | Embedded Kafka integration tests |
+| Database Schema | Verified | R2DBC repository tests with real PostgreSQL |
+| WebSocket Streaming | Verified | Handler tests with mock WebSocket sessions |
+| ML Explainability | Verified | Feature contribution and explanation tests |
+
+### Current State: What's Not Proven
+
+| Aspect | Status | Why |
+|--------|--------|-----|
+| Production Load | Untested | No load testing performed |
+| Real Notifications | Mock Only | Slack/Email/SMS use mock implementations |
+| Failure Recovery | Designed, Not Tested | Retry patterns exist but no chaos testing |
+| Geographic Distribution | Not Designed | Single-region deployment assumed |
+| Real ML Model | Simulated | Uses rule-based scoring, not trained ML model |
+
+### Production Readiness Checklist
+
+#### Infrastructure (Estimated: 2-3 weeks)
+
+- [ ] **Kubernetes Deployment**
+  - Helm charts for application, PostgreSQL, Redis, Kafka
+  - Horizontal Pod Autoscaler configuration
+  - Resource limits and requests tuned via load testing
+  - Liveness/readiness probes (already implemented at `/api/v1/health/*`)
+
+- [ ] **Database**
+  - PostgreSQL RDS/Cloud SQL with read replicas
+  - Connection pooling (PgBouncer or similar)
+  - Automated backups and point-in-time recovery
+  - Database migration CI/CD (Liquibase already in place)
+
+- [ ] **Kafka**
+  - Managed Kafka (Confluent Cloud, AWS MSK, or similar)
+  - Topic partitioning strategy (by userId for ordering)
+  - Schema Registry for event schema evolution
+  - Dead letter queue topics for failed messages
+
+- [ ] **Redis**
+  - Redis Cluster or Elasticache for HA
+  - Sentinel for automatic failover
+  - Eviction policies configured
+
+#### Security (Estimated: 1-2 weeks)
+
+- [ ] **Authentication/Authorization**
+  - OAuth2/OIDC integration (Keycloak, Auth0, Okta)
+  - JWT validation on API endpoints
+  - Role-based access control (ADMIN, ANALYST, API_USER)
+  - API key management for external integrations
+
+- [ ] **Data Protection**
+  - PII encryption at rest (user IDs, IP addresses)
+  - TLS 1.3 for all connections
+  - Secrets management (Vault, AWS Secrets Manager)
+  - Database column-level encryption for sensitive fields
+
+- [ ] **Security Scanning**
+  - OWASP dependency check in CI/CD
+  - Container image scanning (Trivy, Snyk)
+  - Penetration testing before go-live
+
+#### Observability (Estimated: 1 week)
+
+- [ ] **Distributed Tracing**
+  - OpenTelemetry instrumentation
+  - Jaeger or Zipkin for trace visualization
+  - Trace context propagation through Kafka
+
+- [ ] **Logging**
+  - Structured JSON logging (already using Slf4j)
+  - Centralized log aggregation (ELK, Datadog, Splunk)
+  - Correlation IDs across services
+
+- [ ] **Alerting**
+  - PagerDuty/OpsGenie integration for critical alerts
+  - Alert thresholds: error rates, latency p99, Kafka lag
+  - Runbooks for common incidents
+
+- [ ] **Dashboards**
+  - Grafana dashboards for Prometheus metrics
+  - Business metrics: transactions/sec, fraud rate, block rate
+  - ML model performance dashboard (AUC-ROC trends)
+
+#### Real Service Integrations (Estimated: 1-2 weeks)
+
+- [ ] **Notification Services** (currently mocked)
+  ```java
+  // Replace mock implementations with:
+  - SendGrid or AWS SES for email
+  - Twilio for SMS
+  - Slack API for team alerts
+  - PagerDuty for critical escalations
+  ```
+
+- [ ] **External Data Enrichment**
+  - IP geolocation service (MaxMind, IP2Location)
+  - Device fingerprinting
+  - Merchant category code validation
+
+#### ML Model Production (Estimated: 2-4 weeks)
+
+- [ ] **Model Training Pipeline**
+  - Historical transaction data for training
+  - Feature store for consistent feature engineering
+  - Model versioning (MLflow, SageMaker)
+  - A/B testing framework for model comparison
+
+- [ ] **Model Serving**
+  - Replace simulated model with trained model
+  - Model inference latency < 10ms requirement
+  - Fallback to rules-only if model unavailable
+
+- [ ] **Continuous Learning**
+  - Feedback loop from analyst reviews
+  - Model retraining pipeline (weekly/monthly)
+  - Model drift detection and alerting
+
+#### CI/CD Pipeline (Estimated: 1 week)
+
+- [ ] **Build Pipeline**
+  ```yaml
+  stages:
+    - test (unit, integration)
+    - security-scan (OWASP, Snyk)
+    - build (Docker image)
+    - deploy-staging
+    - integration-tests-staging
+    - deploy-production (manual gate)
+  ```
+
+- [ ] **Deployment Strategy**
+  - Blue/green or canary deployments
+  - Automated rollback on error rate spike
+  - Database migration safety checks
+
+#### Load Testing (Estimated: 1 week)
+
+- [ ] **Performance Baselines**
+  - Target: 1,000 transactions/second per instance
+  - p99 latency < 100ms for transaction creation
+  - Kafka consumer lag < 1,000 messages
+
+- [ ] **Load Test Scenarios**
+  - Sustained load (1 hour at target TPS)
+  - Spike test (10x traffic for 5 minutes)
+  - Soak test (24 hours at 50% capacity)
+
+### Effort Estimate Summary
+
+| Category | Effort | Dependencies |
+|----------|--------|--------------|
+| Infrastructure | 2-3 weeks | DevOps/Platform team |
+| Security | 1-2 weeks | Security review |
+| Observability | 1 week | Monitoring stack selection |
+| Service Integrations | 1-2 weeks | Vendor accounts, API keys |
+| ML Production | 2-4 weeks | Data science team, training data |
+| CI/CD | 1 week | CI/CD platform selection |
+| Load Testing | 1 week | Infrastructure provisioned |
+| **Total** | **9-15 weeks** | Parallelizable to ~6-8 weeks |
+
+### Why This Section Exists
+
+This documentation demonstrates:
+
+1. **Self-awareness** - Understanding the difference between demo and production code
+2. **Production thinking** - Knowing what "production-ready" actually means
+3. **Estimation ability** - Providing realistic effort estimates
+4. **Risk identification** - Calling out what's untested and why it matters
+
+> "A senior engineer knows what they don't know. This project proves I can build the architecture; this section proves I understand what comes next."
+
+---
+
 ## License
 
 This project is for demonstration purposes.
