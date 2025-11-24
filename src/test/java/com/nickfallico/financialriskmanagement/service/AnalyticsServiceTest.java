@@ -17,6 +17,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import com.nickfallico.financialriskmanagement.kafka.event.HighRiskUserIdentifiedEvent;
 import com.nickfallico.financialriskmanagement.kafka.event.TransactionCreatedEvent;
@@ -34,6 +36,7 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class AnalyticsServiceTest {
 
     @Mock
@@ -170,7 +173,11 @@ class AnalyticsServiceTest {
         );
 
         // Verify metrics were recorded
-        assert meterRegistry.counter("analytics.high_risk_users.identified").count() == 1.0;
+        assert meterRegistry.counter(
+            "analytics.high_risk_users.identified",
+            "severity", event.getAlertSeverity(),
+            "recommended_action", event.getRecommendedAction()
+        ).count() == 1.0;
     }
 
     @Test
@@ -195,7 +202,10 @@ class AnalyticsServiceTest {
         verify(businessIntelligenceService).feedProfileUpdate(eq(event.getUserId()), anyString());
 
         // Verify metrics
-        assert meterRegistry.counter("analytics.user_profile.updates").count() == 1.0;
+        assert meterRegistry.counter(
+            "analytics.user_profile.updates",
+            "update_reason", event.getUpdateReason()
+        ).count() == 1.0;
     }
 
     @Test

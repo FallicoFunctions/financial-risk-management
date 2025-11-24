@@ -15,6 +15,7 @@ import com.nickfallico.financialriskmanagement.kafka.event.TransactionBlockedEve
 import com.nickfallico.financialriskmanagement.service.FraudAlertService;
 import com.nickfallico.financialriskmanagement.service.NotificationService;
 import com.nickfallico.financialriskmanagement.service.UserProfileService;
+import com.nickfallico.financialriskmanagement.websocket.service.DashboardEventPublisher;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +35,7 @@ public class FraudEventConsumer {
     private final FraudAlertService fraudAlertService;
     private final UserProfileService userProfileService;
     private final NotificationService notificationService;
+    private final DashboardEventPublisher dashboardEventPublisher;
     
     /**
      * Handle FraudDetectedEvent - Critical security event
@@ -111,6 +113,9 @@ public class FraudEventConsumer {
         }
         
         log.warn("⚠️  Fraud investigation required for user: {}", event.getUserId());
+
+        // Publish to WebSocket for real-time dashboard streaming
+        dashboardEventPublisher.publishFraudDetected(event);
     }
     
     /**
@@ -165,6 +170,9 @@ public class FraudEventConsumer {
             )
             .doOnError(error -> log.error("❌ Failed to send transaction confirmation", error))
             .subscribe();
+
+        // Publish to WebSocket for real-time dashboard streaming
+        dashboardEventPublisher.publishFraudCleared(event);
     }
     
     /**
@@ -230,5 +238,8 @@ public class FraudEventConsumer {
         if ("CRITICAL".equals(event.getSeverity())) {
             log.error("🚨 CRITICAL SEVERITY - Immediate review required!");
         }
+
+        // Publish to WebSocket for real-time dashboard streaming
+        dashboardEventPublisher.publishTransactionBlocked(event);
     }
 }

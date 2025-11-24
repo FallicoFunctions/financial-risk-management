@@ -14,6 +14,7 @@ import com.nickfallico.financialriskmanagement.kafka.event.UserProfileUpdatedEve
 import com.nickfallico.financialriskmanagement.service.AnalyticsService;
 import com.nickfallico.financialriskmanagement.service.FraudAlertService;
 import com.nickfallico.financialriskmanagement.service.MetricsService;
+import com.nickfallico.financialriskmanagement.websocket.service.DashboardEventPublisher;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +33,7 @@ public class RiskEventConsumer {
     private final FraudAlertService fraudAlertService;
     private final AnalyticsService analyticsService;
     private final MetricsService metricsService;
+    private final DashboardEventPublisher dashboardEventPublisher;
 
     /**
      * Handle HighRiskUserIdentifiedEvent - Critical alert requiring immediate action
@@ -109,6 +111,9 @@ public class RiskEventConsumer {
         } else {
             log.info("ℹ️  User {} flagged for enhanced monitoring", event.getUserId());
         }
+
+        // Publish to WebSocket for real-time dashboard streaming
+        dashboardEventPublisher.publishHighRiskUserIdentified(event);
     }
 
     /**
@@ -186,6 +191,9 @@ public class RiskEventConsumer {
         }
 
         log.debug("✅ User profile cache invalidated for user: {}", event.getUserId());
+
+        // Publish to WebSocket for real-time dashboard streaming
+        dashboardEventPublisher.publishUserProfileUpdated(event);
     }
 
     /**

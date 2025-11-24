@@ -44,6 +44,12 @@
 			<artifactId>spring-boot-starter-cache</artifactId>
 		</dependency>
 
+		<!-- WebSocket for real-time dashboard streaming -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-websocket</artifactId>
+		</dependency>
+
 		<!-- Jakarta Persistence API (annotations only, no JPA implementation) -->
 		<dependency>
 			<groupId>jakarta.persistence</groupId>

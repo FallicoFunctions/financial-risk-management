@@ -11,6 +11,7 @@ import com.nickfallico.financialriskmanagement.eventstore.model.EventType;
 import com.nickfallico.financialriskmanagement.eventstore.service.EventStoreService;
 import com.nickfallico.financialriskmanagement.kafka.event.TransactionCreatedEvent;
 import com.nickfallico.financialriskmanagement.service.AnalyticsService;
+import com.nickfallico.financialriskmanagement.websocket.service.DashboardEventPublisher;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +28,7 @@ public class TransactionEventConsumer {
     
     private final EventStoreService eventStoreService;
     private final AnalyticsService analyticsService;
+    private final DashboardEventPublisher dashboardEventPublisher;
     
     /**
      * Listen for TransactionCreatedEvents from Kafka.
@@ -75,13 +77,16 @@ public class TransactionEventConsumer {
         
         // Process analytics for ML training and business intelligence
         analyticsService.processTransactionAnalytics(event)
-            .doOnSuccess(v -> 
+            .doOnSuccess(v ->
                 log.debug("✅ Analytics processed for transaction: {}", event.getTransactionId())
             )
-            .doOnError(error -> 
-                log.error("❌ Failed to process analytics for transaction: {}", 
+            .doOnError(error ->
+                log.error("❌ Failed to process analytics for transaction: {}",
                     event.getTransactionId(), error)
             )
             .subscribe();
+
+        // Publish to WebSocket for real-time dashboard streaming
+        dashboardEventPublisher.publishTransactionCreated(event);
     }
 }
