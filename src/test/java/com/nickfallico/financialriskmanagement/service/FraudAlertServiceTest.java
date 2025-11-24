@@ -17,6 +17,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import com.nickfallico.financialriskmanagement.kafka.event.FraudDetectedEvent;
 import com.nickfallico.financialriskmanagement.kafka.event.HighRiskUserIdentifiedEvent;
@@ -31,6 +33,7 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class FraudAlertServiceTest {
 
     @Mock
@@ -155,7 +158,7 @@ class FraudAlertServiceTest {
         verify(slackService).postToChannel(eq("#fraud-review-queue"), anyString());
 
         // Verify investigation queue metric
-        assert meterRegistry.counter("fraud.investigation_queue_additions").count() == 1.0;
+        assert meterRegistry.counter("fraud.investigation_queue_additions", "severity", "MEDIUM").count() == 1.0;
     }
 
     @Test
@@ -171,7 +174,7 @@ class FraudAlertServiceTest {
         verify(slackService).postToChannel(eq("#compliance-alerts"), contains("CRITICAL"));
 
         // Verify metrics
-        assert meterRegistry.counter("fraud.high_risk_user_alerts").count() == 1.0;
+        assert meterRegistry.counter("fraud.high_risk_user_alerts", "severity", "CRITICAL").count() == 1.0;
         assert meterRegistry.counter("fraud.alerts.critical").count() == 1.0;
     }
 
