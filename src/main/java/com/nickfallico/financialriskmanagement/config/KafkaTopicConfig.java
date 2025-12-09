@@ -1,16 +1,24 @@
 package com.nickfallico.financialriskmanagement.config;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
+import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.NewTopic;
+import org.springframework.boot.ApplicationRunner;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.TopicBuilder;
 import org.springframework.kafka.core.KafkaAdmin;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Kafka topic configuration.
@@ -19,6 +27,7 @@ import org.springframework.kafka.core.KafkaAdmin;
  */
 @Configuration
 @ConditionalOnProperty(name = "spring.kafka.enabled", havingValue = "true", matchIfMissing = true)
+@Slf4j
 public class KafkaTopicConfig {
 
     @Value("${spring.kafka.bootstrap-servers}")
@@ -52,75 +61,68 @@ public class KafkaTopicConfig {
         return new KafkaAdmin(configs);
     }
 
-    /**
-     * Topic: transaction.created
-     * Published when a new transaction is created
-     */
+    private NewTopic buildTopic(String topicName) {
+        return TopicBuilder.name(topicName)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
     @Bean
     public NewTopic transactionCreatedTopic() {
-        return TopicBuilder.name(transactionCreatedTopic)
-                .partitions(3)
-                .replicas(1)
-                .build();
+        return buildTopic(transactionCreatedTopic);
     }
 
-    /**
-     * Topic: fraud.detected
-     * Published when fraud is detected in a transaction
-     */
     @Bean
     public NewTopic fraudDetectedTopic() {
-        return TopicBuilder.name(fraudDetectedTopic)
-                .partitions(3)
-                .replicas(1)
-                .build();
+        return buildTopic(fraudDetectedTopic);
     }
 
-    /**
-     * Topic: fraud.cleared
-     * Published when a transaction passes fraud checks
-     */
     @Bean
     public NewTopic fraudClearedTopic() {
-        return TopicBuilder.name(fraudClearedTopic)
-                .partitions(3)
-                .replicas(1)
-                .build();
+        return buildTopic(fraudClearedTopic);
     }
 
-    /**
-     * Topic: transaction.blocked
-     * Published when a transaction is blocked due to fraud
-     */
     @Bean
     public NewTopic transactionBlockedTopic() {
-        return TopicBuilder.name(transactionBlockedTopic)
-                .partitions(3)
-                .replicas(1)
-                .build();
+        return buildTopic(transactionBlockedTopic);
     }
 
-    /**
-     * Topic: user.profile.updated
-     * Published when a user's risk profile is updated
-     */
     @Bean
     public NewTopic userProfileUpdatedTopic() {
-        return TopicBuilder.name(userProfileUpdatedTopic)
-                .partitions(3)
-                .replicas(1)
-                .build();
+        return buildTopic(userProfileUpdatedTopic);
+    }
+
+    @Bean
+    public NewTopic highRiskUserTopic() {
+        return buildTopic(highRiskUserTopic);
     }
 
     /**
-     * Topic: user.high-risk
-     * Published when a user is flagged as high-risk
+     * Startup hook that double-checks all required topics exist, creating any that are missing.
+     * Prevents producer send failures (like transaction.blocked) when brokers disable auto creation.
      */
     @Bean
-    public NewTopic highRiskUserTopic() {
-        return TopicBuilder.name(highRiskUserTopic)
-                .partitions(3)
-                .replicas(1)
-                .build();
+    public ApplicationRunner kafkaTopicInitializer(KafkaAdmin kafkaAdmin, List<NewTopic> kafkaTopics) {
+        return args -> {
+            try (AdminClient adminClient = AdminClient.create(kafkaAdmin.getConfigurationProperties())) {
+                Set<String> existingTopics = adminClient.listTopics().names().get(5, TimeUnit.SECONDS);
+                List<NewTopic> missingTopics = kafkaTopics.stream()
+                        .filter(topic -> !existingTopics.contains(topic.name()))
+                        .collect(Collectors.toList());
+
+                if (missingTopics.isEmpty()) {
+                    log.info("All Kafka topics already exist. Skipping creation.");
+                    return;
+                }
+
+                adminClient.createTopics(missingTopics).all().get(10, TimeUnit.SECONDS);
+                log.info("Created Kafka topics: {}", missingTopics.stream()
+                        .map(NewTopic::name)
+                        .collect(Collectors.joining(", ")));
+            } catch (Exception ex) {
+                log.warn("Unable to verify/create Kafka topics at startup. Kafka may not be available yet.", ex);
+            }
+        };
     }
 }

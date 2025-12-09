@@ -63,18 +63,19 @@ public class FraudEventConsumer {
         log.error("Event Timestamp: {}", event.getEventTimestamp());
         log.error("========================================");
         
-        // Store in event log - CRITICAL for compliance and forensics
-        eventStoreService.storeEvent(
+        // Store in event log for both user + transaction aggregates - critical for compliance and API queries
+        eventStoreService.storeEventForUserAndTransaction(
             EventType.FRAUD_DETECTED,
             event.getUserId(),
-            "USER",
+            event.getTransactionId(),
             event,
             EventStoreService.createKafkaMetadata(topic, partition, offset)
         )
-        .doOnSuccess(storedEvent -> 
-            log.warn("🔒 Fraud event stored in audit log: sequenceNumber={}", storedEvent.getSequenceNumber())
+        .doOnSuccess(unused ->
+            log.warn("🔒 Fraud event stored for user {} and transaction {}",
+                event.getUserId(), event.getTransactionId())
         )
-        .doOnError(error -> 
+        .doOnError(error ->
             log.error("❌ CRITICAL: Failed to store fraud event in audit log!", error)
         )
         .subscribe();
@@ -143,17 +144,19 @@ public class FraudEventConsumer {
         log.info("Event Timestamp: {}", event.getEventTimestamp());
         log.info("========================================");
         
-        // Store in event log
-        eventStoreService.storeEvent(
+        // Store in event log for both aggregates
+        eventStoreService.storeEventForUserAndTransaction(
             EventType.FRAUD_CLEARED,
             event.getUserId(),
-            "USER",
+            event.getTransactionId(),
             event,
             EventStoreService.createKafkaMetadata(topic, partition, offset)
         )
-        .doOnSuccess(storedEvent -> 
-            log.debug("✅ Fraud cleared event stored: sequenceNumber={}", storedEvent.getSequenceNumber())
+        .doOnSuccess(unused ->
+            log.debug("✅ Fraud cleared event stored for user {} and transaction {}",
+                event.getUserId(), event.getTransactionId())
         )
+        .doOnError(error -> log.error("❌ Failed to store fraud cleared event", error))
         .subscribe();
         
         // Log successful validation (for fraud detection metrics - true negatives)
@@ -202,18 +205,19 @@ public class FraudEventConsumer {
         log.error("Event Timestamp: {}", event.getEventTimestamp());
         log.error("========================================");
         
-        // Store in event log - CRITICAL for compliance
-        eventStoreService.storeEvent(
+        // Store in event log for both aggregates - required so REST status reflects fraud outcome
+        eventStoreService.storeEventForUserAndTransaction(
             EventType.TRANSACTION_BLOCKED,
             event.getUserId(),
-            "USER",
+            event.getTransactionId(),
             event,
             EventStoreService.createKafkaMetadata(topic, partition, offset)
         )
-        .doOnSuccess(storedEvent -> 
-            log.error("🔒 Blocked transaction stored in audit log: sequenceNumber={}", storedEvent.getSequenceNumber())
+        .doOnSuccess(unused ->
+            log.error("🔒 Blocked transaction stored for user {} and transaction {}",
+                event.getUserId(), event.getTransactionId())
         )
-        .doOnError(error -> 
+        .doOnError(error ->
             log.error("❌ CRITICAL: Failed to store blocked transaction in audit log!", error)
         )
         .subscribe();

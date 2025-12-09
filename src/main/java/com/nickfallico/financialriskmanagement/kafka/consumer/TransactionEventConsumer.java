@@ -59,19 +59,20 @@ public class TransactionEventConsumer {
         log.info("Kafka Metadata: topic={}, partition={}, offset={}", topic, partition, offset);
         log.info("========================================");
         
-        // Store event in event log for audit trail
-        eventStoreService.storeEvent(
+        // Store event for both user and transaction aggregates so downstream APIs can query either viewpoint
+        eventStoreService.storeEventForUserAndTransaction(
             EventType.TRANSACTION_CREATED,
             event.getUserId(),
-            "USER",
+            event.getTransactionId(),
             event,
             EventStoreService.createKafkaMetadata(topic, partition, offset)
         )
-        .doOnSuccess(storedEvent -> 
-            log.debug("✅ Event stored in event log: sequenceNumber={}", storedEvent.getSequenceNumber())
+        .doOnSuccess(unused ->
+            log.debug("✅ TransactionCreated event stored for user {} and transaction {}",
+                event.getUserId(), event.getTransactionId())
         )
-        .doOnError(error -> 
-            log.error("❌ Failed to store event in event log", error)
+        .doOnError(error ->
+            log.error("❌ Failed to store TransactionCreated event", error)
         )
         .subscribe();
         

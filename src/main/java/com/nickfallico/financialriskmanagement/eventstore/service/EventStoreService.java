@@ -95,6 +95,45 @@ public class EventStoreService {
     }
 
     /**
+     * Convenience helper to store the same event for both USER and TRANSACTION aggregates.
+     * Ensures transaction-specific queries (e.g., REST API status) see the complete fraud history
+     * while user projections continue to function without changes.
+     */
+    public Mono<Void> storeEventForUserAndTransaction(
+        EventType eventType,
+        String userId,
+        UUID transactionId,
+        Object eventPayload,
+        Map<String, Object> metadata
+    ) {
+        if (transactionId == null) {
+            log.warn("Transaction ID is null while storing event {}. Storing only user aggregate.", eventType);
+            return storeEvent(eventType, userId, "USER", eventPayload, metadata).then();
+        }
+
+        Map<String, Object> userMetadata = metadata != null ? new HashMap<>(metadata) : null;
+        Map<String, Object> transactionMetadata = metadata != null ? new HashMap<>(metadata) : null;
+
+        Mono<EventLog> userEvent = storeEvent(
+            eventType,
+            userId,
+            "USER",
+            eventPayload,
+            userMetadata
+        );
+
+        Mono<EventLog> transactionEvent = storeEvent(
+            eventType,
+            transactionId.toString(),
+            "TRANSACTION",
+            eventPayload,
+            transactionMetadata
+        );
+
+        return Mono.when(userEvent, transactionEvent).then();
+    }
+
+    /**
      * Convenience wrapper to publish an event using simple string parameters.
      * Resolves the {@link EventType} from its name and delegates to {@link #storeEvent}.
      */
