@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import org.springframework.stereotype.Component;
 
+import com.nickfallico.financialriskmanagement.model.Transactions;
 import com.nickfallico.financialriskmanagement.repository.TransactionRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -38,12 +39,49 @@ public class ImpossibleTravelRule implements FraudRule {
         
         // Skip if current transaction has no location data
         if (!currentTransaction.hasGeographicData()) {
+            log.debug("ImpossibleTravelRule skipped for tx {} - missing geographic data (lat={}, lon={})",
+                currentTransaction.getId(),
+                currentTransaction.getLatitude(),
+                currentTransaction.getLongitude());
             return Mono.just(Optional.empty());
         }
         
+        log.debug("Evaluating ImpossibleTravelRule for user {} tx {} at ({}, {}) createdAt={}",
+            userId,
+            currentTransaction.getId(),
+            currentTransaction.getLatitude(),
+            currentTransaction.getLongitude(),
+            currentTransaction.getCreatedAt());
+
+        Mono<Transactions> previousTransactionMono;
+
+        if (currentTransaction.getCreatedAt() == null) {
+            log.debug("Current transaction {} missing createdAt; falling back to latest previous transaction lookup",
+                currentTransaction.getId());
+            previousTransactionMono = transactionRepository
+                .findLatestOtherTransactionWithLocation(userId, currentTransaction.getId());
+        } else {
+            previousTransactionMono = transactionRepository
+                .findPreviousTransactionWithLocation(
+                    userId,
+                    currentTransaction.getId(),
+                    currentTransaction.getCreatedAt()
+                );
+        }
+
         // Find previous transaction with location data (reactive)
-        return transactionRepository
-            .findMostRecentTransactionWithLocation(userId)
+        return previousTransactionMono
+            .doOnSuccess(previous -> {
+                if (previous == null) {
+                    log.debug("No previous transaction with location found for user {}", userId);
+                } else {
+                    log.debug("Found previous transaction {} at ({}, {}) createdAt={}",
+                        previous.getId(),
+                        previous.getLatitude(),
+                        previous.getLongitude(),
+                        previous.getCreatedAt());
+                }
+            })
             .flatMap(previousTransaction -> {
                 // Skip if no previous transaction with location
                 if (previousTransaction == null) {
@@ -63,24 +101,36 @@ public class ImpossibleTravelRule implements FraudRule {
                 
                 // Skip if distance is small (local movements are normal)
                 if (distanceKm < MIN_DISTANCE_KM) {
+                    log.debug("ImpossibleTravelRule skipped (distance {} km below threshold {} km)",
+                        distanceKm,
+                        MIN_DISTANCE_KM);
                     return Mono.just(Optional.<FraudViolation>empty());
                 }
                 
-                // Calculate time difference in hours
+                // Calculate time difference in hours (high precision using millis to avoid truncation)
                 Duration timeDiff = Duration.between(
                     previousTransaction.getCreatedAt(),
                     currentTransaction.getCreatedAt()
                 );
                 
-                double hoursElapsed = timeDiff.toMinutes() / 60.0;
+                double hoursElapsed = timeDiff.toMillis() / 3_600_000.0;
                 
                 // Avoid division by zero
                 if (hoursElapsed <= 0) {
+                    log.debug("ImpossibleTravelRule skipped due to non-positive time difference ({} hours) between tx {} and {}",
+                        hoursElapsed,
+                        currentTransaction.getId(),
+                        previousTransaction.getId());
                     return Mono.just(Optional.<FraudViolation>empty());
                 }
                 
                 // Calculate required travel speed
                 double requiredSpeedKmh = distanceKm / hoursElapsed;
+                
+                log.debug("ImpossibleTravelRule speed calculation: distance={} km, hoursElapsed={}, requiredSpeed={} km/h",
+                    distanceKm,
+                    hoursElapsed,
+                    requiredSpeedKmh);
                 
                 // Check if travel speed is impossible
                 if (requiredSpeedKmh > MAX_REALISTIC_SPEED_KMH) {

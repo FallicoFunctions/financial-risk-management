@@ -99,6 +99,44 @@ public interface TransactionRepository extends R2dbcRepository<Transactions, UUI
     Mono<Transactions> findMostRecentTransactionWithLocation(String userId);
 
     /**
+     * Find the latest transaction with location data that occurred before the supplied timestamp.
+     * Helps ImpossibleTravelRule compare against the previous transaction instead of the current one.
+     */
+    @Query("""
+        SELECT * FROM transactions
+        WHERE user_id = :userId
+          AND latitude IS NOT NULL
+          AND longitude IS NOT NULL
+          AND id <> :transactionId
+          AND created_at <= :before
+        ORDER BY created_at DESC
+        LIMIT 1
+    """)
+    Mono<Transactions> findPreviousTransactionWithLocation(
+        String userId,
+        java.util.UUID transactionId,
+        Instant before
+    );
+
+    /**
+     * Find the most recent transaction with location data excluding the given transaction ID.
+     * Used as a fallback when the current transaction does not yet have a createdAt timestamp.
+     */
+    @Query("""
+        SELECT * FROM transactions
+        WHERE user_id = :userId
+          AND latitude IS NOT NULL
+          AND longitude IS NOT NULL
+          AND id <> :transactionId
+        ORDER BY created_at DESC
+        LIMIT 1
+    """)
+    Mono<Transactions> findLatestOtherTransactionWithLocation(
+        String userId,
+        java.util.UUID transactionId
+    );
+
+    /**
      * Find recent transactions with geographic data
      * Used for location pattern analysis
      */
